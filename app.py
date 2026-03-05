@@ -1,5 +1,5 @@
 import dash
-from dash import dcc, html, Input, Output, State, dash_table
+from dash import dcc, html, Input, Output, dash_table
 import pandas as pd
 import plotly.express as px
 import numpy as np
@@ -10,9 +10,9 @@ import datetime as dt
 import subprocess
 import os
 import io
-from flask import session, redirect, url_for, request
+from flask import session, redirect, request
 
-#BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 USERS = {
@@ -22,28 +22,27 @@ USERS = {
 
 
 df_postes = pd.read_csv("postes.csv")
-# ========================
-# 1. Chargement des données
-# ========================
+
+
 def load_data():
     try:
         df = pd.read_csv("resultats_sentiments.csv")
         df['date'] = pd.to_datetime(df['date'], errors='coerce')
         df.dropna(subset=['date'], inplace=True)
-    except:
+    except:  # noqa: E722
         df = pd.DataFrame()
     try:
         with open("kpis.json") as f:
             kpis = json.load(f)
-    except:
+    except:  # noqa: E722
         kpis = {}
     try:
         absa_df = pd.read_csv( "absa_df.csv")
-    except:
+    except:  # noqa: E722
         absa_df = pd.DataFrame()
     try:
         df_postes = pd.read_csv("postes.csv")
-    except:
+    except:  # noqa: E722
         df_postes = pd.DataFrame()
     try:
         wordcloud_img = Image.open("wordcloud.png")
@@ -51,9 +50,10 @@ def load_data():
         buf = io.BytesIO()
         wordcloud_img.save(buf, format="PNG")
         wordcloud_base64 = base64.b64encode(buf.getvalue()).decode()
-    except:
+    except:  # noqa: E722
         wordcloud_base64 = None
     return df, kpis, absa_df, df_postes, wordcloud_base64
+
 
 df, kpis, absa_df, df_postes, wordcloud_base64 = load_data()
 if not df.empty:
@@ -61,9 +61,7 @@ if not df.empty:
 if not absa_df.empty:
     absa_df["date"] = pd.to_datetime(absa_df["date"], errors="coerce")
 
-# ========================
-# 2. Fonction LLaMA
-# ========================
+
 def query_llama(prompt, model="llama3"):
     try:
         result = subprocess.run(
@@ -77,9 +75,7 @@ def query_llama(prompt, model="llama3"):
     except Exception as e:
         return f"⚠️ Erreur LLaMA : {e}"
 
-# ========================
-# 3. Application Dash
-# ========================
+
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
 server = app.server
 server.secret_key = os.environ.get("SECRET_KEY", "super-secret-key-for-dev-only")
@@ -116,7 +112,7 @@ def login_route():
     <style>body{font-family:'Segoe UI',sans-serif;background:#FAFAFA;}</style>
     '''
 
-# === Route logout ===
+
 @server.route("/logout")
 def logout_route():
     session.pop("authenticated", None)
@@ -152,14 +148,9 @@ def get_layout():
     # CHARTRE SG
     SG_RED = "#E60000"
     SG_BLACK = "#000000"
-    SG_WHITE = "#FFFFFF"
 
     if not session.get("authenticated"):
-        return html.Div([
-    # Container principal avec fond dégradé
-    html.Div([
-        # Titre principal
-        html.H2(
+        return html.Div([html.Div([html.H2(
             "🔐 DISCLAIMER CONFORMITÉ RGPD-MKG_330",
             style={
                 "textAlign": "center",
@@ -170,7 +161,6 @@ def get_layout():
             }
         ),
         
-        # Carte de contenu
         html.Div([
             # Section 1: Collecte des données
             html.Div([
@@ -382,12 +372,10 @@ def render_page(tab):
     # === CHARTE GRAPHIQUE SOCIÉTÉ GÉNÉRALE ===
     SG_RED = "#E60000"
     SG_BLACK = "#000000"
-    SG_DARK_GREY = "#1A1A1A"
     SG_GREY = "#3D3D3D"
     SG_LIGHT_GREY = "#F5F5F5"
     SG_WHITE = "#FFFFFF"
     SG_RED_GRADIENT = "linear-gradient(135deg, #E60000 0%, #A00000 100%)"
-    SG_DARK_GRADIENT = "linear-gradient(135deg, #1A1A1A 0%, #000000 100%)"
     
     # === STYLES PROFESSIONNELS ===
     card_premium = {

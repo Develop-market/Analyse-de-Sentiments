@@ -1,25 +1,15 @@
 
-import streamlit as st
 import pandas as pd
-import numpy as np
-from datetime import datetime
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
-import plotly.express as px
 from wordcloud import WordCloud
-import matplotlib.pyplot as plt
-from io import BytesIO
-import base64
 import torch.nn.functional as F
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.feature_extraction import text
 from nltk.corpus import stopwords
-import nltk, re, spacy
-from textblob import TextBlob
+import nltk
+import re
+import spacy
 from unidecode import unidecode
-import string
 import json
-
 from transformers import pipeline
 
 
@@ -35,11 +25,14 @@ custom_stopwords = {
 }
 stop_words.update(custom_stopwords)
 
+
 def load_model():
     model_name = "philschmid/pt-tblard-tf-allocine"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSequenceClassification.from_pretrained(model_name)
     return tokenizer, model
+
+
 tokenizer, model = load_model()
 labels = model.config.id2label
 
@@ -57,6 +50,7 @@ labels = model.config.id2label
 
 negative_keywords = {"nul", "horrible", "détestable", "mauvais", "pourri", "pire", "décevant","difficile","pourquoi","compliqué","mais","longue","pff","souffre","souffrance","souffrent",
                      "triste","prelevement","revoyez","revoyer", "pas"}
+
 
 def predict_sentiment(texts, tokenizer, model):
     labels = model.config.id2label
@@ -78,13 +72,22 @@ def predict_sentiment(texts, tokenizer, model):
 
     return results
 
+
 def clean_text(text):
     text = text.lower()
     text = re.sub(r'[^a-zA-ZÀ-ÿ\\s]', '', text)
     words = text.split()
     words = [w for w in words if w not in stop_words and len(w) > 2]
     return ' '.join(words)
-# === Analyse Aspect-Based ===
+
+
+def nettoyer_textes(text):
+    # Nettoyage de base (à adapter si besoin)
+    text = re.sub(r"[^\w\s]", " ", str(text).lower())
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
 def nettoyer_texte(texte):
     texte = texte.lower()
     texte = unidecode(texte)
@@ -93,16 +96,14 @@ def nettoyer_texte(texte):
     texte = re.sub(r"\s+", " ", texte)
     return texte.strip()
 
-def generate_wordcloud(series, output_path="wordcloud.png"):
+
+def generate_wordcsloud(series, output_path="wordcloud.png"):
     text_all = ' '.join([clean_text(t) for t in series.dropna()])
     wc = WordCloud(width=800, height=400, background_color='white').generate(text_all)
     wc.to_file(output_path)
 
 analyseur_sentiment = pipeline("sentiment-analysis", model=model, tokenizer=tokenizer)
 aspects_cibles = ['gestionnaire', 'application', 'frais', 'carte', 'guichet', 'retrait', 'prêt', 'agence', 'virement',"assurance","service"]
-
-from transformers import pipeline
-import re
 
 # # Analyseur de sentiment
 # analyseur_sentiment = pipeline("sentiment-analysis", model=model, tokenizer=tokenizer)
@@ -202,15 +203,12 @@ def analyse_absa(texte):
             # Associer chaque aspect détecté à cette phrase et ce sentiment
             for aspect in aspects_detectes:
                 resultats.append((aspect, phrase, sentiment))
-        except:
+        except:  # noqa: E722
             continue
 
     return resultats
 
 
-import matplotlib.pyplot as plt
-from wordcloud import WordCloud
-import re
 
 # Supposons que stop_words (de nltk) est déjà importé
 french_stop_words = stop_words.union([
@@ -226,11 +224,6 @@ french_stop_words = stop_words.union([
     "encore", "voir", "...", "d", "plus", "nationale", "d investissement",'nos',"vos","gens","depuis","hein","puis","moin","meme","cette","compte"
 ])
 
-def nettoyer_texte(text):
-    # Nettoyage de base (à adapter si besoin)
-    text = re.sub(r"[^\w\s]", " ", str(text).lower())
-    text = re.sub(r"\s+", " ", text).strip()
-    return text
 
 def generate_wordcloud(df, bank_filter="sgci", phrase_col="phrase", source_col="source", output_path="wordcloud.png"):
     """
@@ -266,11 +259,9 @@ def generate_wordcloud(df, bank_filter="sgci", phrase_col="phrase", source_col="
 
 
 
-
 def process_data(path_concatene="facebook_commentaires_concatene.csv", path_postes="postes.csv"):
-    path = "./commentaires/"
-    df = pd.read_csv(path_c + path_concatene)
-    df_postes = pd.read_csv(path_c + path_postes)
+    df = pd.read_csv(path_concatene)
+    df_postes = pd.read_csv(path_postes)
 
     # Prétraitement
     df.columns = df.columns.str.lower()
@@ -322,4 +313,3 @@ def process_data(path_concatene="facebook_commentaires_concatene.csv", path_post
 # Si exécuté directement
 if __name__ == "__main__":
     process_data()
-

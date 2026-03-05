@@ -7,9 +7,8 @@ from selenium import webdriver
 from selenium.webdriver.edge.service import Service as EdgeService
 from selenium.webdriver.edge.options import Options as EdgeOptions
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import NoSuchElementException, TimeoutException, StaleElementReferenceException
+from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from unidecode import unidecode
 import requests
 from PIL import Image
@@ -216,7 +215,7 @@ def extraire_texte_post(post):
                 texte = elem.text.strip()
                 if texte and len(texte) > 10:  # Ignore les textes trop courts
                     textes_trouves.append(texte)
-        except:
+        except:  # noqa: E722
             continue
     
     # Retourne le texte le plus long trouvé
@@ -241,7 +240,7 @@ def cliquer_voir_plus(post):
             time.sleep(1)
             print("📌 'Voir plus' cliqué")
             return True
-    except:
+    except:  # noqa: E722
         pass
     return False
 
@@ -272,13 +271,13 @@ def extraire_auteur_date(post):
                 auteur = elem.text.strip().split("·")[0].strip()
                 if auteur and len(auteur) > 2:
                     break
-            except:
+            except:   # noqa: E722
                 continue
         
         print(f"📆 {date_formatee} - 👤 {auteur}")
         return date_formatee, auteur
     
-    except:
+    except:  # noqa: E722
         return None, "Auteur inconnu"
 
 
@@ -324,7 +323,7 @@ def ouvrir_commentaires(post):
                 time.sleep(2)
                 print("💬 Panneau commentaires ouvert")
                 return True
-            except:
+            except:  # noqa: E722
                 continue
         
         print("⚠️ Bouton commentaires introuvable")
@@ -349,7 +348,7 @@ def trouver_container_commentaires():
             container = driver.find_element(By.CSS_SELECTOR, sel)
             print(f"✅ Container trouvé: {sel[:50]}...")
             return container
-        except:
+        except:  # noqa: E722
             continue
     
     print("❌ Container commentaires introuvable")
@@ -403,7 +402,7 @@ def extraire_commentaires(container):
                 if blocs:
                     print(f"✅ {len(blocs)} blocs trouvés avec: {sel}")
                     break
-            except:
+            except:  # noqa: E722
                 continue
         
         if not blocs:
@@ -416,14 +415,14 @@ def extraire_commentaires(container):
                 try:
                     auteur_elem = bloc.find_element(By.XPATH, ".//a[.//span[@dir='auto']]")
                     auteur = auteur_elem.text.strip()
-                except:
+                except:  # noqa: E722
                     auteur = "Auteur inconnu"
                 
                 # Texte
                 try:
                     texte_elem = bloc.find_element(By.XPATH, ".//div[@dir='auto']")
                     texte = texte_elem.text.strip()
-                except:
+                except:  # noqa: E722
                     texte = ""
                 
                 if not texte or len(texte) <= 1:
@@ -438,7 +437,7 @@ def extraire_commentaires(container):
                     )
                     date_brute = date_elem.text.strip()
                     date_fmt = convertir_date_facebook(date_brute)
-                except:
+                except:  # noqa: E722
                     date_fmt = "Date inconnue"
                 
                 commentaires.append({
@@ -468,7 +467,7 @@ def fermer_container():
                 time.sleep(1)
                 print("✅ Container fermé")
                 return
-        except:
+        except:  # noqa: E722
             continue
 
 
@@ -609,8 +608,8 @@ def main():
         
         df.to_csv("postes.csv", index=False, encoding='utf-8-sig')
         
-        print(f"\n✅ Extraction terminée!")
-        print(f"📁 Fichier: postes.csv")
+        print("\n✅ Extraction terminée!")
+        print("📁 Fichier: postes.csv")
         print(f"📊 Commentaires: {len(df)}")
         
         # Aperçu

@@ -10,7 +10,6 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.microsoft import EdgeChromiumDriverManager
 
 # Configuration
 #GROUP_URL = "https://web.facebook.com/societegenerale.cotedivoire"
@@ -34,6 +33,7 @@ SOURCES = [
     "page_sgci",
     "page_BACI"
 ]
+
 
 data = pd.read_csv("facebook_commentaires_concatene.csv")
 
@@ -327,13 +327,8 @@ def scroll_comment_container(container):
 
 
 
-from datetime import datetime, timedelta
-from selenium.webdriver.common.by import By
 
 # Fonction pour convertir les dates relatives Facebook
-import re
-from datetime import datetime, timedelta
-from selenium.webdriver.common.by import By
 
 def convertir_date_facebook(date_str):
     """Convertit une date Facebook en format JJ-MM-AAAA"""
@@ -360,7 +355,7 @@ def convertir_date_facebook(date_str):
         elif re.match(r"\d{1,2} \w+", date_str):  # Exemple : "10 mai"
             try:
                 date_finale = datetime.strptime(date_str + f" {aujourd_hui.year}", "%d %b %Y")
-            except:
+            except:  # noqa: E722
                 date_finale = datetime.strptime(date_str + f" {aujourd_hui.year}", "%d %B %Y")
 
         else:
@@ -389,14 +384,14 @@ def extract_comments(container):
                 try:
                     author_element = block.find_element(By.XPATH, ".//a[.//span[@dir='auto']]")
                     author_name = author_element.text.strip()
-                except:
+                except:  # noqa: E722
                     author_name = "Auteur inconnu"
 
                 # 🔎 Texte du commentaire
                 try:
                     comment_element = block.find_element(By.XPATH, ".//div[@dir='auto']")
                     comment_text = comment_element.text.strip()
-                except:
+                except:  # noqa: E722
                     comment_text = ""
 
                 if not comment_text or len(comment_text) <= 1:
@@ -411,7 +406,7 @@ def extract_comments(container):
                     )
                     raw_date = date_element.text.strip()
                     formatted_date = convertir_date_facebook(raw_date)
-                except:
+                except:  # noqa: E722
                     formatted_date = "Date non trouvée"
 
                 # ✅ Enregistrement
@@ -475,7 +470,7 @@ def main():
         df_concat = pd.concat([data, df], ignore_index=True).drop_duplicates()
         df_concat.to_csv(filename, index=False)
 
-        print(f"\n✅ Extraction terminée pour toutes les sources.")
+        print("\n✅ Extraction terminée pour toutes les sources.")
         print(f"📁 Fichier sauvegardé: {filename}")
         print(f"📊 Nombre total de commentaires: {len(df)}")
 
@@ -489,4 +484,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
