@@ -1,1 +1,8 @@
-{"total_comments": 17710, "positive_comments": 5553, "negative_comments": 12157}
+{
+  "total_comments": 14251,
+  "positive_comments": 4000,
+  "negative_comments": 4385,
+  "neutral_comments": 5866,
+  "pct_positive": 28.1,
+  "pct_negative": 30.8
+}

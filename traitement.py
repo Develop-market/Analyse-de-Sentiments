@@ -1,95 +1,215 @@
+"""
+Analyse de sentiment & ABSA des commentaires Facebook bancaires
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Mise à jour mars 2026 :
+  - Modèle principal : cardiffnlp/camembert-base-tweet-sentiment-fr
+    → Fine-tuné sur des tweets FR (plus proche du langage Facebook)
+    → Labels : POSITIVE / NEGATIVE / NEUTRAL (3 classes, vs 2 avant)
+  - Fallback léger : cmarkea/distilcamembert-base-sentiment
+    → DistilCamemBERT, ~2× plus rapide pour la production
+  - Inférence par batch (pipeline) — suppression de la boucle commentaire par commentaire
+  - Gestion GPU automatique (device=0 si CUDA disponible)
+  - Normalisation des labels robuste (insensible aux variantes de casse)
+  - ABSA : détection multi-aspects par phrase (inchangé dans la logique)
+  - Wordcloud : stopwords enrichis, filtre longueur amélioré
+"""
 
+import re
+import json
+import warnings
 import pandas as pd
 import torch
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from wordcloud import WordCloud
 import torch.nn.functional as F
-from nltk.corpus import stopwords
 import nltk
-import re
 import spacy
+
+from transformers import (
+    AutoTokenizer,
+    AutoModelForSequenceClassification,
+    pipeline,
+)
+from wordcloud import WordCloud
+from nltk.corpus import stopwords
 from unidecode import unidecode
-import json
-from transformers import pipeline
 
+warnings.filterwarnings("ignore", category=UserWarning)
 
-# Télécharger les stopwords français
-nltk.download('stopwords')
+# ─────────────────────────────────────────────
+# CONFIGURATION
+# ─────────────────────────────────────────────
+
+# Modèle principal 2026 : fine-tuné sur tweets FR → adapté aux commentaires sociaux
+MODEL_NAME = "cardiffnlp/camembert-base-tweet-sentiment-fr"
+
+# Fallback plus léger (décommenter si RAM limitée)
+# MODEL_NAME = "cmarkea/distilcamembert-base-sentiment"
+
+BATCH_SIZE = 32           # Taille de batch pour l'inférence (adapter à la VRAM)
+MAX_LENGTH = 512          # Longueur max des tokens
+DEVICE = 0 if torch.cuda.is_available() else -1   # GPU si dispo, sinon CPU
+
+INPUT_FILE_COMMENTS = "facebook_commentaires_concatene.csv"
+INPUT_FILE_POSTS = "postes.csv"
+OUTPUT_SENTIMENTS = "resultats_sentiments.csv"
+OUTPUT_ABSA = "absa_df.csv"
+OUTPUT_KPIS = "kpis.json"
+OUTPUT_WORDCLOUD = "wordcloud.png"
+
+# ─────────────────────────────────────────────
+# STOPWORDS
+# ─────────────────────────────────────────────
+nltk.download("stopwords", quiet=True)
 nlp = spacy.load("fr_core_news_md")
-stop_words = set(stopwords.words('french'))
-custom_stopwords = {
-    "banque", "côte", "d'", "ivoire", "services", "société générale", "écobank", "générale", "dinformation", "information",
-    "avis", "ivoire", "commentaires", "sgbci", "ecobank", "nsia", "bni",
-    "bonne", "bonjour", "voir plus", "peu", "temps", "souvent",
-    "société", "encore", "aussi", "voir", "en voir plus", "... en voir plus", "...", "d", "plus", "nationale", "d investissement"
+
+_base_stop = set(stopwords.words("french"))
+_custom_stop = {
+    # Entités bancaires
+    "banque", "côte", "ivoire", "services", "société", "générale", "écobank",
+    "sgbci", "ecobank", "nsia", "bni", "sgci", "générale",
+    # Termes génériques parasites
+    "avis", "commentaires", "information", "dinformation", "bonjour", "bonne",
+    "voir", "plus", "peu", "temps", "souvent", "encore", "aussi", "nationale",
+    "investissement", "clients", "client", "merci", "svp", "alors", "alors",
+    "voir plus", "en voir plus", "...",
+    # Mots grammaticaux non couverts par NLTK
+    "nos", "vos", "gens", "depuis", "hein", "puis", "moin", "meme", "cette",
+    "compte", "deja", "ans", "ville", "année", "être", "matin", "jour", "bas",
+    "petit", "quoi", "dire", "plateau", "reçu", "attend", "passer", "donner",
+    "appeler", "combien", "vraiment", "semaine", "toujour", "vais", "chez",
+    "savoir", "avant", "selon", "dites", "moins", "autres", "allez", "mettre",
+    "toujours", "veux", "peux", "seulement", "créer", "revoyez",
 }
-stop_words.update(custom_stopwords)
+STOP_WORDS = _base_stop | _custom_stop
+
+# ─────────────────────────────────────────────
+# MOTS-CLÉS NÉGATIFS (règle heuristique rapide)
+# ─────────────────────────────────────────────
+NEGATIVE_KEYWORDS = {
+    "nul", "horrible", "détestable", "mauvais", "pourri", "pire", "décevant",
+    "difficile", "compliqué", "pff", "souffre", "souffrance", "souffrent",
+    "triste", "prelevement", "revoyez", "revoyer",
+}
+
+# ─────────────────────────────────────────────
+# ASPECTS ABSA
+# ─────────────────────────────────────────────
+ASPECTS_CIBLES = {
+    "application":    ["application", "appli", "mobile", "sg connect", "sgconnect"],
+    "carte":          ["carte bancaire", "carte visa", "carte"],
+    "frais":          ["frais", "coût", "tarif", "commission", "agio", "agios", "prelevements"],
+    "guichet":        ["guichet", "gab", "guichet automatique"],
+    "retrait":        ["retrait", "retrait d'argent"],
+    "gestionnaire":   ["gestionnaire", "conseiller"],
+    "prêt":           ["prêt", "emprunt", "crédit", "emprunter"],
+    "agence":         ["agence", "locaux", "bureau"],
+    "virement":       ["virement", "salaire"],
+    "assurance":      ["assurance", "assurer"],
+    "service client": ["service", "client", "yeri"],
+}
 
 
+# ─────────────────────────────────────────────
+# CHARGEMENT DU MODÈLE
+# ─────────────────────────────────────────────
 def load_model():
-    model_name = "philschmid/pt-tblard-tf-allocine"
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForSequenceClassification.from_pretrained(model_name)
+    """
+    Charge le tokenizer et le modèle de sentiment.
+    2026 : cardiffnlp/camembert-base-tweet-sentiment-fr
+    → 3 labels : POSITIVE / NEGATIVE / NEUTRAL
+    → Fine-tuné sur des tweets FR, plus adapté aux réseaux sociaux
+    """
+    print(f"🤖 Chargement du modèle : {MODEL_NAME}")
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+    model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME)
+    print(f"✅ Labels disponibles : {model.config.id2label}")
     return tokenizer, model
 
 
 tokenizer, model = load_model()
-labels = model.config.id2label
 
-# def predict_sentiment(texts, tokenizer, model):
-#     labels = model.config.id2label
-#     results = []
-#     for text in texts:
-#         inputs = tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
-#         with torch.no_grad():
-#             logits = model(**inputs).logits
-#             probs = F.softmax(logits, dim=-1)[0]
-#             idx = torch.argmax(probs).item()
-#             results.append({'label': labels[idx], 'score': float(probs[idx])})
-#     return results
-
-negative_keywords = {"nul", "horrible", "détestable", "mauvais", "pourri", "pire", "décevant","difficile","pourquoi","compliqué","mais","longue","pff","souffre","souffrance","souffrent",
-                     "triste","prelevement","revoyez","revoyer", "pas"}
+# Pipeline Hugging Face avec inférence par batch et gestion GPU
+analyseur_sentiment = pipeline(
+    "sentiment-analysis",
+    model=model,
+    tokenizer=tokenizer,
+    device=DEVICE,
+    batch_size=BATCH_SIZE,
+    truncation=True,
+    max_length=MAX_LENGTH,
+    padding=True,
+)
 
 
-def predict_sentiment(texts, tokenizer, model):
-    labels = model.config.id2label
+# ─────────────────────────────────────────────
+# NORMALISATION DES LABELS
+# ─────────────────────────────────────────────
+def normaliser_label(label: str) -> str:
+    """
+    Normalise les variantes de labels selon le modèle utilisé.
+    cardiffnlp → "positive" / "negative" / "neutral"
+    cmarkea   → "POSITIVE" / "NEGATIVE" (5 étoiles → 2 classes)
+    Retourne toujours POSITIVE / NEGATIVE / NEUTRAL en majuscules.
+    """
+    label_lower = label.lower()
+    if "pos" in label_lower:
+        return "POSITIVE"
+    if "neg" in label_lower:
+        return "NEGATIVE"
+    return "NEUTRAL"
+
+
+# ─────────────────────────────────────────────
+# PRÉDICTION DE SENTIMENT
+# ─────────────────────────────────────────────
+def predict_sentiment(texts: list[str]) -> list[dict]:
+    """
+    Prédit le sentiment d'une liste de textes par batch.
+
+    Logique :
+    1. Heuristique rapide : si un mot-clé négatif fort est présent → NEGATIVE direct
+    2. Sinon → modèle Transformer (inférence par batch)
+
+    Retourne : liste de {'label': str, 'score': float}
+    """
     results = []
+    indices_to_model = []   # indices des textes à envoyer au modèle
+    texts_to_model = []
 
-    for text in texts:
+    # Passe 1 : heuristique rapide
+    for i, text in enumerate(texts):
         text_lower = text.lower()
-        contains_negative = any(word in text_lower for word in negative_keywords)
-
-        if contains_negative:
-            results.append({'label': 'NEGATIVE', 'score': 1.0})
+        if any(kw in text_lower for kw in NEGATIVE_KEYWORDS):
+            results.append({"label": "NEGATIVE", "score": 1.0})
         else:
-            inputs = tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
-            with torch.no_grad():
-                logits = model(**inputs).logits
-                probs = F.softmax(logits, dim=-1)[0]
-                idx = torch.argmax(probs).item()
-                results.append({'label': labels[idx], 'score': float(probs[idx])})
+            results.append(None)           # placeholder
+            indices_to_model.append(i)
+            texts_to_model.append(text)
+
+    # Passe 2 : inférence batch sur les textes restants
+    if texts_to_model:
+        print(f"  🔮 Inférence sur {len(texts_to_model)} textes (batch={BATCH_SIZE}, device={'GPU' if DEVICE == 0 else 'CPU'})...")
+        try:
+            predictions = analyseur_sentiment(texts_to_model)
+            for idx, pred in zip(indices_to_model, predictions):
+                results[idx] = {
+                    "label": normaliser_label(pred["label"]),
+                    "score": round(pred["score"], 4),
+                }
+        except Exception as e:
+            print(f"  ⚠️ Erreur inférence batch : {e} — fallback NEUTRAL")
+            for idx in indices_to_model:
+                if results[idx] is None:
+                    results[idx] = {"label": "NEUTRAL", "score": 0.5}
 
     return results
 
 
-def clean_text(text):
-    text = text.lower()
-    text = re.sub(r'[^a-zA-ZÀ-ÿ\\s]', '', text)
-    words = text.split()
-    words = [w for w in words if w not in stop_words and len(w) > 2]
-    return ' '.join(words)
-
-
-def nettoyer_textes(text):
-    # Nettoyage de base (à adapter si besoin)
-    text = re.sub(r"[^\w\s]", " ", str(text).lower())
-    text = re.sub(r"\s+", " ", text).strip()
-    return text
-
-
-def nettoyer_texte(texte):
-    texte = texte.lower()
+# ─────────────────────────────────────────────
+# NETTOYAGE DE TEXTE
+# ─────────────────────────────────────────────
+def nettoyer_texte(texte: str) -> str:
+    """Nettoyage de base : minuscules, sans accents, sans ponctuation"""
+    texte = str(texte).lower()
     texte = unidecode(texte)
     texte = re.sub(r"http\S+", "", texte)
     texte = re.sub(r"[^\w\s]", " ", texte)
@@ -97,219 +217,206 @@ def nettoyer_texte(texte):
     return texte.strip()
 
 
-def generate_wordcsloud(series, output_path="wordcloud.png"):
-    text_all = ' '.join([clean_text(t) for t in series.dropna()])
-    wc = WordCloud(width=800, height=400, background_color='white').generate(text_all)
-    wc.to_file(output_path)
+def clean_text_for_wordcloud(texte: str) -> str:
+    """Nettoyage + filtrage stopwords pour le wordcloud"""
+    texte = nettoyer_texte(texte)
+    mots = [m for m in texte.split() if m not in STOP_WORDS and len(m) > 2]
+    return " ".join(mots)
 
-analyseur_sentiment = pipeline("sentiment-analysis", model=model, tokenizer=tokenizer)
-aspects_cibles = ['gestionnaire', 'application', 'frais', 'carte', 'guichet', 'retrait', 'prêt', 'agence', 'virement',"assurance","service"]
 
-# # Analyseur de sentiment
-# analyseur_sentiment = pipeline("sentiment-analysis", model=model, tokenizer=tokenizer)
-
-# Dictionnaire d’aspects avec leurs expressions clés associées
-aspects_cibles = {
-    'application': ['application', 'appli', 'mobile', 'sg connect'],
-    'carte': ['carte bancaire', 'carte visa', 'carte'],
-    'frais': ['frais', 'coût', 'tarif', 'commission','agio','agios',"prelevements"],
-    'guichet': ['guichet', 'gab', 'guichet automatique'],
-    'retrait': ['retrait', 'retrait d\'argent'],
-    'gestionnaire': ['gestionnaire', 'conseiller'],
-    'prêt': ['prêt', 'emprunt', 'crédit',"emprunter"],
-    'agence': ['agence', 'locaux', 'bureau'],
-    'virement': ['virement','salaire'],
-    'assurance': ['assurance', 'assurer'],
-    'service client': ['service', 'client', 'yeri']
-}
-
-def normaliser_texte(texte):
-    """Minuscule + sans accents + nettoyage basique"""
+# ─────────────────────────────────────────────
+# NORMALISATION DES TEXTES POUR ABSA
+# ─────────────────────────────────────────────
+def normaliser_texte_absa(texte: str) -> str:
+    """Supprime les accents + nettoyage minimal pour la correspondance d'aspects"""
     texte = texte.lower()
-    texte = re.sub(r"[éèêë]", "e", texte)
-    texte = re.sub(r"[àâä]", "a", texte)
-    texte = re.sub(r"[îï]", "i", texte)
-    texte = re.sub(r"[ôö]", "o", texte)
-    texte = re.sub(r"[ùûü]", "u", texte)
+    for pattern, repl in [
+        (r"[éèêë]", "e"), (r"[àâä]", "a"), (r"[îï]", "i"),
+        (r"[ôö]", "o"),   (r"[ùûü]", "u"),
+    ]:
+        texte = re.sub(pattern, repl, texte)
     texte = re.sub(r"[^a-z0-9\s']", " ", texte)
     return texte
 
-# def analyse_absa(texte):
-#     doc = nlp(texte)
-#     resultats = []
 
-#     for sent in doc.sents:
-#         phrase = sent.text.strip()
-#         phrase_norm = normaliser_texte(phrase)
-#         aspect_trouve = None
-
-#         for aspect, expressions in aspects_cibles.items():
-#             for exp in expressions:
-#                 if exp in phrase_norm:
-#                     aspect_trouve = aspect
-#                     break
-#             if aspect_trouve:
-#                 break
-
-#         if not aspect_trouve:
-#             continue  # ⛔ Ignore la phrase si aucun aspect détecté
-
-#         try:
-#             prediction = analyseur_sentiment(phrase)[0]
-#             label = prediction['label'].lower()
-
-#             if 'pos' in label:
-#                 sentiment = "positif"
-#             elif 'neg' in label:
-#                 sentiment = "negatif"
-#             else:
-#                 sentiment = "neutre"
-
-#             resultats.append((aspect_trouve, phrase, sentiment))
-#         except:
-#             continue
-
-#     return resultats
-def analyse_absa(texte):
+# ─────────────────────────────────────────────
+# ANALYSE ABSA (Aspect-Based Sentiment Analysis)
+# ─────────────────────────────────────────────
+def analyse_absa(texte: str) -> list[tuple]:
+    """
+    Détecte les aspects mentionnés dans chaque phrase et leur sentiment.
+    Retourne : liste de (aspect, phrase, sentiment)
+    """
     doc = nlp(texte)
     resultats = []
 
-    for sent in doc.sents:
-        phrase = sent.text.strip()
-        phrase_norm = normaliser_texte(phrase)
+    phrases = [sent.text.strip() for sent in doc.sents if sent.text.strip()]
+    if not phrases:
+        return []
 
+    # Détecter les aspects pour chaque phrase
+    phrases_avec_aspects = []
+    for phrase in phrases:
+        phrase_norm = normaliser_texte_absa(phrase)
         aspects_detectes = set()
-        for aspect, expressions in aspects_cibles.items():
+        for aspect, expressions in ASPECTS_CIBLES.items():
             for exp in expressions:
                 if exp in phrase_norm:
                     aspects_detectes.add(aspect)
-                    break  # Une fois une expression trouvée pour un aspect, on le note et on passe au suivant
+                    break
+        if aspects_detectes:
+            phrases_avec_aspects.append((phrase, aspects_detectes))
 
-        if not aspects_detectes:
-            continue  # ⛔ Ignore la phrase si aucun aspect détecté
+    if not phrases_avec_aspects:
+        return []
 
-        # Analyse de sentiment pour toute la phrase
-        try:
-            prediction = analyseur_sentiment(phrase)[0]
-            label = prediction['label'].lower()
+    # Inférence de sentiment sur les phrases filtrées (batch)
+    phrases_seules = [p for p, _ in phrases_avec_aspects]
+    try:
+        predictions = analyseur_sentiment(phrases_seules)
+    except Exception as e:
+        print(f"  ⚠️ Erreur ABSA inférence : {e}")
+        return []
 
-            if 'pos' in label:
-                sentiment = "positif"
-            elif 'neg' in label:
-                sentiment = "negatif"
-            else:
-                sentiment = "neutre"
+    for (phrase, aspects), pred in zip(phrases_avec_aspects, predictions):
+        label = normaliser_label(pred["label"])
+        if "pos" in label.lower():
+            sentiment = "positif"
+        elif "neg" in label.lower():
+            sentiment = "negatif"
+        else:
+            sentiment = "neutre"
 
-            # Associer chaque aspect détecté à cette phrase et ce sentiment
-            for aspect in aspects_detectes:
-                resultats.append((aspect, phrase, sentiment))
-        except:  # noqa: E722
-            continue
+        for aspect in aspects:
+            resultats.append((aspect, phrase, sentiment))
 
     return resultats
 
 
-
-# Supposons que stop_words (de nltk) est déjà importé
-french_stop_words = stop_words.union([
-    "alors", "voir plus", "voir", "aussi", "autre", "avec", "avoir", "bon", "car", "ce", "cela", "ces", "ceux",
-    "chaque", "ci", "comme", "comment", "dans", "des", "du", "dedans", "dehors", "depuis", "devrait", "doit",
-    "donc", "elle", "elles", "en", "encore", "essai", "est", "et", "eu", "fait", "faites", "fois", "font","seulement","créer","deja","svp","ans","ville","année","revoyez","être","matin","jour","bas",
-    "ici", "il", "ils", "je", "juste", "la", "le", "les", "leur", "là", "ma", "maintenant", "mais", "mes","petit","quoi","dire","plateau","reçu","attend","passer","donner","appeler",
-    "mon", "mot", "ni", "notre", "nous", "ou", "où", "par", "parce", "pas", "peut", "peu", "pour", "pourquoi","combien","vraiment","semaine","toujour","vais",
-    "quand", "que", "quel", "quelle", "quelles", "quels", "qui", "sa", "sans", "ses", "si", "son", "sont","chez","savoir","avant","selon","dites","moins","autres",
-    "sur", "ta", "tandis", "tellement", "tels", "tes", "ton", "tous", "tout", "très", "tu", "votre", "vous", "vu",
-    "banque", "côte", "d'", "ivoire", "services", "société", "générale", "écobank", "dinformation", "information","allez","mettre","clients","toujours",
-    "avis", "commentaires", "sgbci", "ecobank", "nsia", "bni", "bonne", "bonjour", "temps", "souvent","veux","peux","merci","client","sgci",
-    "encore", "voir", "...", "d", "plus", "nationale", "d investissement",'nos',"vos","gens","depuis","hein","puis","moin","meme","cette","compte"
-])
-
-
-def generate_wordcloud(df, bank_filter="sgci", phrase_col="phrase", source_col="source", output_path="wordcloud.png"):
+# ─────────────────────────────────────────────
+# WORDCLOUD
+# ─────────────────────────────────────────────
+def generate_wordcloud(
+    df: pd.DataFrame,
+    bank_filter: str = "sgci",
+    phrase_col: str = "phrase",
+    source_col: str = "source",
+    sentiment_filter: str = "negatif",
+    output_path: str = OUTPUT_WORDCLOUD,
+):
     """
-    Génère un wordcloud pour les phrases associées à une banque spécifique.
-    
-    Paramètres :
-    - df : DataFrame contenant les commentaires
-    - bank_filter : chaîne pour filtrer la colonne source
-    - phrase_col : nom de la colonne contenant les phrases
-    - source_col : nom de la colonne contenant la source
-    - output_path : chemin de sauvegarde de l'image PNG
+    Génère un wordcloud pour les phrases négatives d'une banque donnée.
     """
-    # Filtrage des phrases liées à la banque choisie
-    bank_df = df[df[source_col].str.contains(bank_filter, case=False, na=False)]
-    bank_df = bank_df[bank_df["sentiment"]=="negatif"]
+    mask = df[source_col].str.contains(bank_filter, case=False, na=False)
+    if sentiment_filter:
+        mask &= df["sentiment"].str.lower() == sentiment_filter
+
+    bank_df = df[mask]
 
     if bank_df.empty:
-        print(f"Aucune donnée trouvée pour la banque '{bank_filter}'.")
+        print(f"⚠️ Aucune donnée pour '{bank_filter}' ({sentiment_filter}) — wordcloud ignoré")
         return
 
-    textes_propres = []
-    for phrase in bank_df[phrase_col].dropna():
-        texte_nettoye = nettoyer_texte(phrase)
-        mots = texte_nettoye.split()
-        mots_filtres = [mot for mot in mots if mot not in french_stop_words and len(mot) > 2]
-        textes_propres.append(" ".join(mots_filtres))
+    texte_final = " ".join(
+        clean_text_for_wordcloud(phrase)
+        for phrase in bank_df[phrase_col].dropna()
+    )
 
-    texte_final = " ".join(textes_propres)
+    if not texte_final.strip():
+        print("⚠️ Texte vide après nettoyage — wordcloud ignoré")
+        return
 
-    # Génération du wordcloud
-    wc = WordCloud(width=800, height=400, background_color='white').generate(texte_final)
+    wc = WordCloud(
+        width=1200,
+        height=600,
+        background_color="white",
+        max_words=150,
+        collocations=False,     # évite les doublons de bi-grammes
+        min_word_length=3,
+    ).generate(texte_final)
     wc.to_file(output_path)
+    print(f"✅ Wordcloud sauvegardé : {output_path}")
 
 
+# ─────────────────────────────────────────────
+# PIPELINE PRINCIPAL
+# ─────────────────────────────────────────────
+def process_data(
+    path_concatene: str = INPUT_FILE_COMMENTS,
+    path_postes: str = INPUT_FILE_POSTS,
+):
+    print("🚀 Démarrage du pipeline NLP...\n")
 
-def process_data(path_concatene="facebook_commentaires_concatene.csv", path_postes="postes.csv"):
+    # ── Chargement ─────────────────────────────────────────────────
     df = pd.read_csv(path_concatene)
     df_postes = pd.read_csv(path_postes)
 
-    # Prétraitement
+    # ── Prétraitement ──────────────────────────────────────────────
     df.columns = df.columns.str.lower()
-    df = df[['date','auteur', 'commentaire', 'source']].dropna()
-    df['commentaire'] = df['commentaire'].astype(str).str.replace("\\n", " ")
-    df['ts'] = pd.to_datetime(df['date'], dayfirst=True, errors='coerce')
-    df = df.dropna(subset=['ts'])
-    df = df[df['commentaire'].str.strip() != '']
+    df = df[["date", "auteur", "commentaire", "source"]].dropna()
+    df["commentaire"] = df["commentaire"].astype(str).str.replace(r"\\n", " ", regex=True)
+    df["ts"] = pd.to_datetime(df["date"], dayfirst=True, errors="coerce")
+    df = df.dropna(subset=["ts"])
+    df = df[df["commentaire"].str.strip() != ""]
+    df = df.drop_duplicates(subset=["auteur", "commentaire"])
+    print(f"📊 {len(df)} commentaires à analyser")
 
-    # Chargement du modèle et prédiction
-    tokenizer, model = load_model()
-    sentiments = predict_sentiment(df['commentaire'].tolist(), tokenizer, model)
-    df['sentiment'] = [s['label'] for s in sentiments]
-    df['score'] = [s['score'] for s in sentiments]
-    df['date'] = df['ts']
+    # ── Prédiction sentiment (batch) ───────────────────────────────
+    print("\n🔮 Analyse de sentiment...")
+    sentiments = predict_sentiment(df["commentaire"].tolist())
+    df["sentiment"] = [s["label"] for s in sentiments]
+    df["score"] = [s["score"] for s in sentiments]
+    df["date"] = df["ts"]
 
-    df['clean'] = df['commentaire'].astype(str).apply(nettoyer_texte)
+    # ── ABSA ───────────────────────────────────────────────────────
+    print("\n🔍 Analyse ABSA (aspects)...")
+    df["clean"] = df["commentaire"].astype(str).apply(nettoyer_texte)
+
     analyse_finale = []
     for _, row in df.iterrows():
-        aspects = analyse_absa(row['clean'])
-        date = row['date']
+        aspects = analyse_absa(row["clean"])
         for aspect, phrase, sentiment in aspects:
             analyse_finale.append({
-            'source': row['source'],
-            'auteur': row['auteur'],
-                'date' : date,
-                'phrase': phrase,
-                'aspect': aspect,
-                'sentiment': sentiment
+                "source":   row["source"],
+                "auteur":   row["auteur"],
+                "date":     row["date"],
+                "phrase":   phrase,
+                "aspect":   aspect,
+                "sentiment": sentiment,
             })
-    # KPIs
+
+    # ── KPIs ───────────────────────────────────────────────────────
     kpis = {
-        'total_comments': len(df),
-        'positive_comments': (df['sentiment'] == 'POSITIVE').sum(),
-        'negative_comments': (df['sentiment'] == 'NEGATIVE').sum()
+        "total_comments":    int(len(df)),
+        "positive_comments": int((df["sentiment"] == "POSITIVE").sum()),
+        "negative_comments": int((df["sentiment"] == "NEGATIVE").sum()),
+        "neutral_comments":  int((df["sentiment"] == "NEUTRAL").sum()),  # nouveau label 2026
+        "pct_positive":      round((df["sentiment"] == "POSITIVE").mean() * 100, 1),
+        "pct_negative":      round((df["sentiment"] == "NEGATIVE").mean() * 100, 1),
     }
+    print(f"\n📈 KPIs : {kpis}")
 
-    # Sauvegardes locales
-    
-    df.to_csv("resultats_sentiments.csv", index=False)
-    df_postes.to_csv("postes.csv", index=False)
-    with open("kpis.json", "w") as f:
-        json.dump({k: int(v) for k, v in kpis.items()}, f)
+    # ── Sauvegardes ────────────────────────────────────────────────
+    df.to_csv(OUTPUT_SENTIMENTS, index=False, encoding="utf-8-sig")
+    print(f"✅ Sentiments sauvegardés : {OUTPUT_SENTIMENTS}")
 
-    absa_df = pd.DataFrame(analyse_finale)
-    absa_df = absa_df.drop_duplicates()
-    absa_df.to_csv("absa_df.csv",index=False)
-    generate_wordcloud(absa_df, bank_filter="sgci", output_path="wordcloud.png")
-# Si exécuté directement
+    df_postes.to_csv(path_postes, index=False, encoding="utf-8-sig")
+
+    with open(OUTPUT_KPIS, "w", encoding="utf-8") as f:
+        json.dump(kpis, f, ensure_ascii=False, indent=2)
+    print(f"✅ KPIs sauvegardés : {OUTPUT_KPIS}")
+
+    absa_df = pd.DataFrame(analyse_finale).drop_duplicates()
+    absa_df.to_csv(OUTPUT_ABSA, index=False, encoding="utf-8-sig")
+    print(f"✅ ABSA sauvegardé : {OUTPUT_ABSA} ({len(absa_df)} lignes)")
+
+    # ── Wordcloud ──────────────────────────────────────────────────
+    generate_wordcloud(absa_df, bank_filter="sgci", output_path=OUTPUT_WORDCLOUD)
+
+    print("\n✅ Pipeline NLP terminé !")
+    return df, absa_df, kpis
+
+
+# ─────────────────────────────────────────────
 if __name__ == "__main__":
     process_data()
