@@ -423,77 +423,239 @@ def scroll_comment_container(container):
 
     print(f"  ✅ Scroll terminé — {prev_count} commentaires visibles")
 
+def convertir_date_facebook(date_str: str, output_format: str = "%d-%m-%Y") -> str:
+    """
+    Convertit une date Facebook en JJ-MM-AAAA.
 
-# ─────────────────────────────────────────────
-# Conversion des dates relatives Facebook
-# ─────────────────────────────────────────────
-def convertir_date_facebook(date_str: str) -> str:
-    """Convertit une date relative Facebook (FR/EN) en JJ-MM-AAAA"""
-    aujourd_hui = datetime.today()
+    Formats supportés :
+      - Long FR   : 'Mardi 31 mars 2026 à 15:01'
+      - Long EN   : 'Tuesday March 31, 2026 at 3:01 PM'
+      - Relatifs  : '5 min', '2h', '3j', '1 sem', '3 mois', '2 ans' (+ variantes EN)
+      - Contextuels : 'hier', 'today', 'just now', 'à l'instant'
+      - Absolus   : '10 mai', '10 May', '10 mai 2024', '10 May 2024'
+      - ISO 8601  : '2024-05-10T14:32:05Z', '2024-05-10T14:32:05+02:00', '2024-05-10'
+      - Unix      : '1715345523' (secondes) ou '1715345523000' (millisecondes)
+    """
+
+    if not date_str or not isinstance(date_str, str):
+        return "02-04-2026"
+
+    aujourd_hui = datetime.now()
     s = date_str.lower().strip()
 
     try:
-        # Minutes
-        if re.search(r"\d+\s*m(in)?", s):
-            minutes = int(re.search(r"(\d+)", s).group(1))
-            return (aujourd_hui - timedelta(minutes=minutes)).strftime("%d-%m-%Y")
 
-        # Heures (h / hr / hour)
-        if re.search(r"\d+\s*(h|hr|hour)", s):
-            heures = int(re.search(r"(\d+)", s).group(1))
-            return (aujourd_hui - timedelta(hours=heures)).strftime("%d-%m-%Y")
-
-        # Jours (j / d / day)
-        if re.search(r"\d+\s*(j|d|day)", s):
-            jours = int(re.search(r"(\d+)", s).group(1))
-            return (aujourd_hui - timedelta(days=jours)).strftime("%d-%m-%Y")
-
-        # Semaines (sem / w / week)
-        if re.search(r"\d+\s*(sem|w|week)", s):
-            semaines = int(re.search(r"(\d+)", s).group(1))
-            return (aujourd_hui - timedelta(weeks=semaines)).strftime("%d-%m-%Y")
-
-        # Mois (mois / mo / month)
-        if re.search(r"\d+\s*(mois|mo|month)", s):
-            mois = int(re.search(r"(\d+)", s).group(1))
-            return (aujourd_hui - timedelta(days=mois * 30)).strftime("%d-%m-%Y")
-
-        # Ans (an / ans / y / year)
-        if re.search(r"\d+\s*(an|ans|y|year)", s):
-            ans = int(re.search(r"(\d+)", s).group(1))
-            return (aujourd_hui - timedelta(days=ans * 365)).strftime("%d-%m-%Y")
-
-        # "hier" / "yesterday"
-        if "hier" in s or "yesterday" in s:
-            return (aujourd_hui - timedelta(days=1)).strftime("%d-%m-%Y")
-
-        # "aujourd" / "today" / "just now" / "à l'instant"
-        if any(k in s for k in ["aujourd", "today", "just now", "instant"]):
-            return aujourd_hui.strftime("%d-%m-%Y")
-
-        # Date absolue : "10 mai", "10 May", "10 mai 2024"
-        for fmt in ("%d %b %Y", "%d %B %Y", "%d %b", "%d %B"):
+        # --- 1. Format long Facebook FR : 'Mardi 31 mars 2026 à 15:01' ---
+        # Supprime le nom du jour (mot initial) et le séparateur 'à' avant l'heure
+        match_fr = re.search(
+            r"(?:lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)?\s*"
+            r"(\d{1,2})\s+([a-zéûùàâêî]+)\s+(\d{4})\s+à\s+(\d{1,2}:\d{2})",
+            s
+        )
+        if match_fr:
+            # Reconstruit une chaîne normalisée sans le jour de la semaine ni 'à'
+            date_normalisee = f"{match_fr.group(1)} {match_fr.group(2)} {match_fr.group(3)}"
+            import locale as _locale
+            locale_origine = _locale.getlocale(_locale.LC_TIME)
             try:
-                d = datetime.strptime(
-                    date_str.strip() + (f" {aujourd_hui.year}" if len(fmt.split()) == 2 else ""),
-                    fmt if "Y" in fmt else fmt + " %Y"
-                )
-                return d.strftime("%d-%m-%Y")
-            except ValueError:
-                continue
-
-        # Timestamp ISO 8601 (attribut datetime= des balises <time>)
-        if "t" in s or "-" in s:
-            for iso_fmt in ("%Y-%m-%dT%H:%M:%S+%f", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d"):
+                for loc in ["fr_FR.UTF-8", "fr_FR", "fr_BE.UTF-8"]:
+                    try:
+                        _locale.setlocale(_locale.LC_TIME, loc)
+                    except _locale.Error:
+                        continue
+                    try:
+                        return datetime.strptime(date_normalisee, "%d %B %Y").strftime(output_format)
+                    except ValueError:
+                        pass
+            finally:
                 try:
-                    return datetime.strptime(date_str[:19], iso_fmt[:len(date_str[:19])]).strftime("%d-%m-%Y")
-                except ValueError:
+                    _locale.setlocale(_locale.LC_TIME, locale_origine)
+                except _locale.Error:
+                    pass
+
+        # --- 2. Format long Facebook EN : 'Tuesday March 31, 2026 at 3:01 PM' ---
+        match_en = re.search(
+            r"(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)?\s*"
+            r"([a-z]+)\s+(\d{1,2}),?\s+(\d{4})\s+at\s+(\d{1,2}:\d{2}\s*(?:am|pm)?)",
+            s
+        )
+        if match_en:
+            date_normalisee = f"{match_en.group(2)} {match_en.group(1)} {match_en.group(3)}"
+            import locale as _locale
+            locale_origine = _locale.getlocale(_locale.LC_TIME)
+            try:
+                for loc in ["en_US.UTF-8", "en_GB.UTF-8", "C"]:
+                    try:
+                        _locale.setlocale(_locale.LC_TIME, loc)
+                    except _locale.Error:
+                        continue
+                    for fmt in ["%d %B %Y", "%d %b %Y"]:
+                        try:
+                            return datetime.strptime(date_normalisee, fmt).strftime(output_format)
+                        except ValueError:
+                            pass
+            finally:
+                try:
+                    _locale.setlocale(_locale.LC_TIME, locale_origine)
+                except _locale.Error:
+                    pass
+
+        # --- 3. Timestamp Unix (10 chiffres = secondes, 13 = millisecondes) ---
+        if re.fullmatch(r"\d{10,13}", s):
+            n = int(s)
+            if n > 1e11:
+                n //= 1000
+            return datetime.fromtimestamp(n).strftime(output_format)
+
+        # --- 4. ISO 8601 ---
+        if re.search(r"\d{4}-\d{2}-\d{2}", s):
+            cleaned = date_str.strip().replace("Z", "+00:00")
+            dt = datetime.fromisoformat(cleaned)
+            if dt.tzinfo is not None:
+                dt = dt.astimezone(tz=None).replace(tzinfo=None)
+            return dt.strftime(output_format)
+
+        # --- 5. Relatif : minutes — '5m', '5 min', '5 minutes' ---
+        if re.search(r"\d+\s*m(in|n)?(?!\w)", s):
+            n = int(re.search(r"(\d+)", s).group(1))
+            return (aujourd_hui - timedelta(minutes=n)).strftime(output_format)
+
+        # --- 6. Relatif : heures — '2h', '2 hr', '2 hours', '2 heures' ---
+        if re.search(r"\d+\s*(h(?!a)|hr|hour|heure)", s):
+            n = int(re.search(r"(\d+)", s).group(1))
+            return (aujourd_hui - timedelta(hours=n)).strftime(output_format)
+
+        # --- 7. Relatif : jours — '3j', '3 jours', '3d', '3 days' ---
+        if re.search(r"\d+\s*(j(?!a)|jour|day|d(?!\w))", s):
+            n = int(re.search(r"(\d+)", s).group(1))
+            return (aujourd_hui - timedelta(days=n)).strftime(output_format)
+
+        # --- 8. Relatif : semaines — '2 sem', '2 semaines', '2w', '2 weeks' ---
+        if re.search(r"\d+\s*(sem|semaine|week|w(?!\w))", s):
+            n = int(re.search(r"(\d+)", s).group(1))
+            return (aujourd_hui - timedelta(weeks=n)).strftime(output_format)
+
+        # --- 9. Relatif : mois — '3 mois', '3 mo', '3 months' ---
+        if re.search(r"\d+\s*(mois|month|mo(?!\w))", s):
+            n = int(re.search(r"(\d+)", s).group(1))
+            return (aujourd_hui - timedelta(days=n * 30)).strftime(output_format)
+
+        # --- 10. Relatif : années — '1 an', '2 ans', '1y', '1 year' ---
+        if re.search(r"\d+\s*(an(?!t)|ans|year|y(?!\w))", s):
+            n = int(re.search(r"(\d+)", s).group(1))
+            return (aujourd_hui - timedelta(days=n * 365)).strftime(output_format)
+
+        # --- 11. Contextuels : hier / yesterday ---
+        if any(k in s for k in ["hier", "yesterday"]):
+            return (aujourd_hui - timedelta(days=1)).strftime(output_format)
+
+        # --- 12. Contextuels : aujourd'hui / today / just now / maintenant ---
+        if any(k in s for k in ["aujourd", "today", "just now", "instant", "maintenant", "now"]):
+            return aujourd_hui.strftime(output_format)
+
+        # --- 13. Date absolue textuelle FR/EN avec ou sans année ---
+        import locale as _locale
+        formats_avec_annee = ["%d %b %Y", "%d %B %Y"]
+        formats_sans_annee = ["%d %b",    "%d %B"]
+        locales = ["fr_FR.UTF-8", "fr_FR", "fr_BE.UTF-8", "en_US.UTF-8", "en_GB.UTF-8", "C"]
+        locale_origine = _locale.getlocale(_locale.LC_TIME)
+        try:
+            for loc in locales:
+                try:
+                    _locale.setlocale(_locale.LC_TIME, loc)
+                except _locale.Error:
                     continue
+                for fmt in formats_avec_annee:
+                    try:
+                        return datetime.strptime(date_str.strip(), fmt).strftime(output_format)
+                    except ValueError:
+                        pass
+                for fmt in formats_sans_annee:
+                    try:
+                        d = datetime.strptime(date_str.strip(), fmt).replace(year=aujourd_hui.year)
+                        return d.strftime(output_format)
+                    except ValueError:
+                        pass
+        finally:
+            try:
+                _locale.setlocale(_locale.LC_TIME, locale_origine)
+            except _locale.Error:
+                pass
 
         return "Format inconnu"
 
-    except Exception:
-        return "Erreur de conversion"
+    except Exception as e:
+        return f"Erreur de conversion : {e}"
+# ─────────────────────────────────────────────
+# Conversion des dates relatives Facebook
+# ─────────────────────────────────────────────
+# def convertir_date_facebook(date_str: str) -> str:
+#     """Convertit une date relative Facebook (FR/EN) en JJ-MM-AAAA"""
+#     aujourd_hui = datetime.today()
+#     s = date_str.lower().strip()
+
+#     try:
+#         # Minutes
+#         if re.search(r"\d+\s*m(in)?", s):
+#             minutes = int(re.search(r"(\d+)", s).group(1))
+#             return (aujourd_hui - timedelta(minutes=minutes)).strftime("%d-%m-%Y")
+
+#         # Heures (h / hr / hour)
+#         if re.search(r"\d+\s*(h|hr|hour)", s):
+#             heures = int(re.search(r"(\d+)", s).group(1))
+#             return (aujourd_hui - timedelta(hours=heures)).strftime("%d-%m-%Y")
+
+#         # Jours (j / d / day)
+#         if re.search(r"\d+\s*(j|d|day)", s):
+#             jours = int(re.search(r"(\d+)", s).group(1))
+#             return (aujourd_hui - timedelta(days=jours)).strftime("%d-%m-%Y")
+
+#         # Semaines (sem / w / week)
+#         if re.search(r"\d+\s*(sem|w|week)", s):
+#             semaines = int(re.search(r"(\d+)", s).group(1))
+#             return (aujourd_hui - timedelta(weeks=semaines)).strftime("%d-%m-%Y")
+
+#         # Mois (mois / mo / month)
+#         if re.search(r"\d+\s*(mois|mo|month)", s):
+#             mois = int(re.search(r"(\d+)", s).group(1))
+#             return (aujourd_hui - timedelta(days=mois * 30)).strftime("%d-%m-%Y")
+
+#         # Ans (an / ans / y / year)
+#         if re.search(r"\d+\s*(an|ans|y|year)", s):
+#             ans = int(re.search(r"(\d+)", s).group(1))
+#             return (aujourd_hui - timedelta(days=ans * 365)).strftime("%d-%m-%Y")
+
+#         # "hier" / "yesterday"
+#         if "hier" in s or "yesterday" in s:
+#             return (aujourd_hui - timedelta(days=1)).strftime("%d-%m-%Y")
+
+#         # "aujourd" / "today" / "just now" / "à l'instant"
+#         if any(k in s for k in ["aujourd", "today", "just now", "instant"]):
+#             return aujourd_hui.strftime("%d-%m-%Y")
+
+#         # Date absolue : "10 mai", "10 May", "10 mai 2024"
+#         for fmt in ("%d %b %Y", "%d %B %Y", "%d %b", "%d %B"):
+#             try:
+#                 d = datetime.strptime(
+#                     date_str.strip() + (f" {aujourd_hui.year}" if len(fmt.split()) == 2 else ""),
+#                     fmt if "Y" in fmt else fmt + " %Y"
+#                 )
+#                 return d.strftime("%d-%m-%Y")
+#             except ValueError:
+#                 continue
+
+#         # Timestamp ISO 8601 (attribut datetime= des balises <time>)
+#         if "t" in s or "-" in s:
+#             for iso_fmt in ("%Y-%m-%dT%H:%M:%S+%f", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d"):
+#                 try:
+#                     return datetime.strptime(date_str[:19], iso_fmt[:len(date_str[:19])]).strftime("%d-%m-%Y")
+#                 except ValueError:
+#                     continue
+
+#         return "Format inconnu"
+
+#     except Exception:
+#         return "Erreur de conversion"
 
 
 # ─────────────────────────────────────────────
