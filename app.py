@@ -145,7 +145,7 @@ def load_data():
 df, kpis, absa_df, df_postes, wordcloud_base64 = load_data()
 
 # Dates min/max dynamiques (plus de dates codées en dur)
-DATE_MIN = dt.date(2024, 1, 1)
+DATE_MIN = dt.date(2025, 1, 1)
 DATE_MAX_COMMENTS = df["date"].max().date() if not df.empty else dt.date.today()
 DATE_MAX_ABSA = absa_df["date"].max().date() if not absa_df.empty else dt.date.today()
 
@@ -624,8 +624,8 @@ def render_page(tab):
             return _empty_state("Aucun post trouvé")
 
         df_p = df_postes.copy()
-        df_p["date_post"] = pd.to_datetime(df_p["date_post"], errors="coerce").dt.date
-        df_p = df_p.dropna(subset=["date_post"])
+        df_p["date"] = pd.to_datetime(df_p["date"], errors="coerce").dt.date
+        df_p = df_p.dropna(subset=["date"])
 
         content = [_hero("📝 Posts Récents",
                          "Dans le groupe ( Observatoire Libre des Banques )")]
@@ -639,7 +639,7 @@ def render_page(tab):
             )
             posts = (df_p[df_p["source"] == source]
                      .groupby("poste").first().reset_index()
-                     .sort_values("date_post", ascending=False))
+                     .sort_values("date", ascending=False))
 
             for _, row in posts.iterrows():
                 coms = df_p[(df_p["source"] == source) & (df_p["poste"] == row["poste"])]
@@ -655,7 +655,7 @@ def render_page(tab):
                 content.append(html.Div([
                     html.Div([
                         html.Span("📅 ", style={"fontSize": "18px"}),
-                        html.Span(str(row["date_post"]),
+                        html.Span(str(row["date"]),
                                   style={"fontWeight": "600", "color": "#0f0f10"})
                     ], style={"marginBottom": "8px"}),
                     html.Div([

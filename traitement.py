@@ -59,6 +59,7 @@ OUTPUT_WORDCLOUD = "wordcloud.png"
 # STOPWORDS
 # ─────────────────────────────────────────────
 nltk.download("stopwords", quiet=True)
+# python -m spacy download fr_core_news_md
 nlp = spacy.load("fr_core_news_md")
 
 _base_stop = set(stopwords.words("french"))
@@ -77,7 +78,8 @@ _custom_stop = {
     "petit", "quoi", "dire", "plateau", "reçu", "attend", "passer", "donner",
     "appeler", "combien", "vraiment", "semaine", "toujour", "vais", "chez",
     "savoir", "avant", "selon", "dites", "moins", "autres", "allez", "mettre",
-    "toujours", "veux", "peux", "seulement", "créer", "revoyez",
+    "toujours", "veux", "peux", "seulement", "créer", "revoyez","faire", "fait","jusqu","sans","quand","donc","franchement",
+    "comment","comme","arrive","arrivé","arrivent","arrivent","arriver","arrivée","arrivés","arrivées","arrivons","arrivez","arrivent","arrivent","arrivera","arriveront"
 }
 STOP_WORDS = _base_stop | _custom_stop
 
@@ -97,14 +99,14 @@ ASPECTS_CIBLES = {
     "application":    ["application", "appli", "mobile", "sg connect", "sgconnect"],
     "carte":          ["carte bancaire", "carte visa", "carte"],
     "frais":          ["frais", "coût", "tarif", "commission", "agio", "agios", "prelevements"],
-    "guichet":        ["guichet", "gab", "guichet automatique"],
-    "retrait":        ["retrait", "retrait d'argent"],
-    "gestionnaire":   ["gestionnaire", "conseiller"],
-    "prêt":           ["prêt", "emprunt", "crédit", "emprunter"],
-    "agence":         ["agence", "locaux", "bureau"],
-    "virement":       ["virement", "salaire"],
-    "assurance":      ["assurance", "assurer"],
-    "service client": ["service", "client", "yeri"],
+    "guichet":        ["guichet", "gab", "guichet automatique","dab","distributeur"],
+    "retrait":        ["retrait", "retrait d'argent", "retrait argent","retrait cash","caisse"],
+    "gestionnaire":   ["gestionnaire", "conseiller", "conseillère", "conseillers", "conseillères", "conseil"],
+    "prêt":           ["prêt", "emprunt", "crédit", "emprunter", "ppo","financement","financer","pret"],
+    "agence":         ["agence", "locaux", "bureau","agences","siege","siège", "agence centrale","agence principale","banque privée"],
+    "virement":       ["virement", "salaire","transfert", "transferts","virements","transfert d'argent","transfert argent","transactions","transaction"],
+    "assurance":      ["assurance", "assurer","assurances","assuré","assurée","assurés","assurées","assureur","assureurs"],
+    "service client": ["centre de relation client","crc", "client", "yeri", "service client", "service clientèle", "service clients", "service clientèle", "support", "assistance"],
 }
 
 
