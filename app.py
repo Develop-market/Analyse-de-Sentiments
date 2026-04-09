@@ -624,58 +624,90 @@ def render_page(tab):
             return _empty_state("Aucun post trouvé")
 
         df_p = df_postes.copy()
-        df_p["date"] = pd.to_datetime(df_p["date"], errors="coerce").dt.date
+        print("\n" + "="*60)
+        print("ÉTAPE 1 — df_postes brut (avant parsing dates)")
+        print(f"  date max : {df_p['date'].max()}")
+        print(f"  date min : {df_p['date'].min()}")
+        print(f"  nb lignes : {len(df_p)}")
+
+        df_p["date"] = pd.to_datetime(df_p["date"], errors="coerce", dayfirst=True).dt.date
         df_p = df_p.dropna(subset=["date"])
+        print("\nÉTAPE 2 — après parsing dates (dayfirst=True) + dropna")
+        print(f"  date max : {df_p['date'].max()}")
+        print(f"  date min : {df_p['date'].min()}")
+        print(f"  nb lignes : {len(df_p)}")
+
+        # ✅ Remplacer les NaN dans "poste" AVANT le groupby
+        df_p["poste"] = df_p["poste"].fillna("(post sans texte)")
 
         content = [_hero("📝 Posts Récents",
-                         "Dans le groupe ( Observatoire Libre des Banques )")]
+                        "Dans le groupe ( Observatoire Libre des Banques )")]
 
         for source in df_p["source"].unique():
+            print("\n" + "-"*60)
+            print(f"SOURCE : {source}")
+
+            src_df = df_p[df_p["source"] == source]
+            print(f"\n  ÉTAPE 3 — filtrage sur source '{source}'")
+            print(f"    date max : {src_df['date'].max()}")
+            print(f"    date min : {src_df['date'].min()}")
+            print(f"    nb lignes : {len(src_df)}")
+            print(f"    nb postes NaN : {src_df['poste'].isna().sum()}")
+
+            src_sorted = src_df.sort_values("date", ascending=False)
+            print(f"\n  ÉTAPE 4 — après sort_values(date, ascending=False)")
+            print(f"    date max : {src_sorted['date'].max()}")
+            print(f"    date min : {src_sorted['date'].min()}")
+            print(f"    nb lignes : {len(src_sorted)}")
+
+            posts = src_sorted.groupby("poste", as_index=False).first()
+            print(f"\n  ÉTAPE 5 — après groupby('poste').first()")
+            print(f"    date max : {posts['date'].max()}")
+            print(f"    date min : {posts['date'].min()}")
+            print(f"    nb postes uniques : {len(posts)}")
+            print("="*60)
+
             content.append(
                 html.H3(f"📢 {source}",
                         style={"color": "#c30b0b", "fontSize": "28px",
-                               "marginBottom": "20px", "fontWeight": "700",
-                               "marginTop": "40px"})
+                            "marginBottom": "20px", "fontWeight": "700",
+                            "marginTop": "40px"})
             )
-            posts = (df_p[df_p["source"] == source]
-                     .groupby("poste").first().reset_index()
-                     .sort_values("date", ascending=False))
 
             for _, row in posts.iterrows():
                 coms = df_p[(df_p["source"] == source) & (df_p["poste"] == row["poste"])]
 
-                # Colonnes AgGrid pour les commentaires du post
                 com_cols = [
-                    {"field": "date",        "headerName": "Date",       "width": 120},
-                    {"field": "auteur_com",  "headerName": "Auteur",     "width": 160},
-                    {"field": "commentaire", "headerName": "Commentaire","flex": 1,
-                     "wrapText": True, "autoHeight": True},
+                    {"field": "date",        "headerName": "Date",        "width": 120},
+                    {"field": "auteur_com",  "headerName": "Auteur",      "width": 160},
+                    {"field": "commentaire", "headerName": "Commentaire", "flex": 1,
+                    "wrapText": True, "autoHeight": True},
                 ]
 
                 content.append(html.Div([
                     html.Div([
                         html.Span("📅 ", style={"fontSize": "18px"}),
                         html.Span(str(row["date"]),
-                                  style={"fontWeight": "600", "color": "#0f0f10"})
+                                style={"fontWeight": "600", "color": "#0f0f10"})
                     ], style={"marginBottom": "8px"}),
                     html.Div([
                         html.Span("👤 ", style={"fontSize": "18px"}),
                         html.Span(row["auteur"], style={"fontWeight": "600", "color": "#374151"})
                     ], style={"marginBottom": "12px"}),
                     html.P(row["poste"],
-                           style={"fontSize": "16px", "lineHeight": "1.6",
-                                  "color": "#1f2937", "padding": "15px",
-                                  "backgroundColor": "#f9fafb", "borderRadius": "8px",
-                                  "borderLeft": "4px solid #667eea"}),
+                        style={"fontSize": "16px", "lineHeight": "1.6",
+                                "color": "#1f2937", "padding": "15px",
+                                "backgroundColor": "#f9fafb", "borderRadius": "8px",
+                                "borderLeft": "4px solid #667eea"}),
                     html.H5("💬 Commentaires",
                             style={"color": "#374151", "marginTop": "20px",
-                                   "marginBottom": "15px", "fontWeight": "700"}),
+                                "marginBottom": "15px", "fontWeight": "700"}),
                     dag.AgGrid(
                         columnDefs=com_cols,
                         rowData=coms[["date", "auteur_com", "commentaire"]].to_dict("records"),
                         defaultColDef={"resizable": True},
                         dashGridOptions={"pagination": True, "paginationPageSize": 5,
-                                         "domLayout": "autoHeight"},
+                                        "domLayout": "autoHeight"},
                         style={"height": None, "width": "100%"},
                     ) if not coms.empty else html.P(
                         "Aucun commentaire associé",
@@ -685,9 +717,7 @@ def render_page(tab):
 
         return html.Div(content,
                         style={"padding": "50px 30px", "backgroundColor": "#FAFAFA",
-                               "minHeight": "100vh"})
-
-
+                            "minHeight": "100vh"})
 # ─────────────────────────────────────────────
 # HELPERS UI
 # ─────────────────────────────────────────────
