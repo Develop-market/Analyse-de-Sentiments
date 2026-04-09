@@ -307,7 +307,7 @@ def _app_layout():
                 dcc.Tab(label="📈 Statistiques Générales",     value="stats"),
                 dcc.Tab(label="📊 Analyses Graphiques",        value="viz"),
                 dcc.Tab(label="🔍 Détails des commentaires",   value="details"),
-                dcc.Tab(label="📝 Posts divers",               value="posts"),
+                #dcc.Tab(label="📝 Posts divers",               value="posts"),
             ],
             style={"fontWeight": "600", "fontSize": "16px"}
         ),
