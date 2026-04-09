@@ -619,7 +619,7 @@ def render_page(tab):
         ], style={"padding": "50px 30px", "backgroundColor": "#FAFAFA", "minHeight": "100vh"})
 
     # ── POSTS ─────────────────────────────────────────────────────
-    elif tab == "posts":
+    # elif tab == "posts":
         if df_postes.empty:
             return _empty_state("Aucun post trouvé")
 
