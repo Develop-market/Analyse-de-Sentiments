@@ -46,6 +46,17 @@ SG_LIGHT_GREY   = "#F5F5F5"
 SG_WHITE        = "#FFFFFF"
 SG_RED_GRADIENT = "linear-gradient(135deg, #E60000 0%, #A00000 100%)"
 
+# Ordre de tri des flags (priorité d'affichage)
+FLAG_ORDER = {
+    "Très négatif": 0,
+    "Négatif": 1,
+    "Légèrement négatif": 2,
+    "Neutre": 3,
+    "Légèrement positif": 4,
+    "Positif": 5,
+    "Très positif": 6
+}
+
 
 # ─────────────────────────────────────────────
 # STYLES RÉUTILISABLES
@@ -143,6 +154,23 @@ def load_data():
 
 
 df, kpis, absa_df, df_postes, wordcloud_base64 = load_data()
+
+# ── Enrichissement absa_df : assurer la présence des colonnes gravité ─────────
+# Depuis la mise à jour de traitement.py, absa_df.csv contient directement
+# gravite, prob_negative et flag. Ce bloc gère les anciens CSV sans ces colonnes.
+if not absa_df.empty:
+    if "gravite" not in absa_df.columns:
+        absa_df["gravite"] = "Aucune"
+    else:
+        absa_df["gravite"] = absa_df["gravite"].fillna("Aucune")
+    if "prob_negative" not in absa_df.columns:
+        absa_df["prob_negative"] = 0.0
+    else:
+        absa_df["prob_negative"] = absa_df["prob_negative"].fillna(0.0)
+    if "flag" not in absa_df.columns:
+        absa_df["flag"] = "Neutre"
+    else:
+        absa_df["flag"] = absa_df["flag"].fillna("Neutre")
 
 # Dates min/max dynamiques (plus de dates codées en dur)
 DATE_MIN = dt.date(2025, 1, 1)
@@ -556,13 +584,15 @@ def render_page(tab):
         if absa_df.empty:
             return _empty_state("Aucun commentaire disponible")
 
-        # Tri par date décroissante (correction du bug original)
-        absa_sorted = absa_df.sort_values("date", ascending=False)
+        # Tri par gravité puis date décroissante
+        _tmp = absa_df.copy()
+        _tmp["_flag_rank"] = _tmp["flag"].map(FLAG_ORDER).fillna(3) if "flag" in _tmp.columns else 3
+        absa_sorted = _tmp.sort_values(["_flag_rank", "date"], ascending=[True, False])
 
         # Options de filtres
         dates_opts  = [{"label": "Toutes", "value": "Toutes"}] + \
                       [{"label": str(d)[:10], "value": str(d)[:10]}
-                       for d in absa_sorted["date"].dt.date.unique()]
+                       for d in absa_df.sort_values("date", ascending=False)["date"].dt.date.unique()]
         source_opts = [{"label": "Toutes", "value": "Toutes"}] + \
                       [{"label": s, "value": s} for s in sorted(absa_df["source"].unique())]
         aspect_opts = [{"label": "Toutes", "value": "Toutes"}] + \
@@ -571,47 +601,90 @@ def render_page(tab):
             {"label": "Tous",          "value": "Tous"},
             {"label": "😊 Positif",    "value": "positif"},
             {"label": "😡 Négatif",    "value": "negatif"},
-            {"label": "😐 Neutre",     "value": "neutre"},   # nouveau label 2026
+            {"label": "😐 Neutre",     "value": "neutre"},
+        ]
+        flag_opts = [
+            {"label": "Tous", "value": "Toutes"},
+            {"label": "🔴 Très négatif", "value": "Très négatif"},
+            {"label": "🟠 Négatif", "value": "Négatif"},
+            {"label": "🟡 Légèrement négatif", "value": "Légèrement négatif"},
+            {"label": "⚪ Neutre", "value": "Neutre"},
+            {"label": "🟢 Légèrement positif", "value": "Légèrement positif"},
+            {"label": "💚 Positif", "value": "Positif"},
+            {"label": "✨ Très positif", "value": "Très positif"},
         ]
 
-        # Définition des colonnes pour AgGrid (remplace DataTable)
+        # Colonnes AgGrid avec coloration conditionnelle de la gravité
         ag_columns = [
-            {"field": "date",    "headerName": "Date",      "width": 130},
-            {"field": "auteur",  "headerName": "Auteur",    "width": 160},
+            {"field": "date",    "headerName": "Date",      "width": 120},
+            {"field": "auteur",  "headerName": "Auteur",    "width": 155},
             {"field": "phrase",  "headerName": "Phrase",    "flex": 1,
              "wrapText": True, "autoHeight": True},
-            {"field": "aspect",  "headerName": "Typologie", "width": 150},
+            {"field": "aspect",  "headerName": "Typologie", "width": 145},
+            {"field": "flag",  "headerName": "État",  "width": 165,
+             "cellStyle": {
+                 "styleConditions": [
+                     {"condition": "params.value == 'Très négatif'",
+                      "style": {"backgroundColor": "#FF0000", "color": "#FFFFFF", "fontWeight": "bold", "borderRadius": "6px"}},
+                     {"condition": "params.value == 'Négatif'",
+                      "style": {"backgroundColor": "#FF6600", "color": "#FFFFFF", "fontWeight": "bold", "borderRadius": "6px"}},
+                     {"condition": "params.value == 'Légèrement négatif'",
+                      "style": {"backgroundColor": "#FFC107", "color": "#333", "fontWeight": "bold", "borderRadius": "6px"}},
+                     {"condition": "params.value == 'Neutre'",
+                      "style": {"backgroundColor": "#E8E8E8", "color": "#666", "borderRadius": "6px"}},
+                     {"condition": "params.value == 'Légèrement positif'",
+                      "style": {"backgroundColor": "#D4EDDA", "color": "#155724", "borderRadius": "6px"}},
+                     {"condition": "params.value == 'Positif'",
+                      "style": {"backgroundColor": "#28A745", "color": "#FFFFFF", "fontWeight": "bold", "borderRadius": "6px"}},
+                     {"condition": "params.value == 'Très positif'",
+                      "style": {"backgroundColor": "#1E7E34", "color": "#FFFFFF", "fontWeight": "bold", "borderRadius": "6px"}},
+                 ]
+             }},
         ]
+
+        # Légende des flags
+        legend = html.Div([
+            html.Span("Légende : ", style={"fontWeight": "700", "marginRight": "10px"}),
+            html.Span("🔴 Très négatif", style={"background": "#FF0000", "color": "#fff", "padding": "3px 10px", "borderRadius": "6px", "marginRight": "8px", "fontSize": "13px"}),
+            html.Span("🟠 Négatif", style={"background": "#FF6600", "color": "#fff", "padding": "3px 10px", "borderRadius": "6px", "marginRight": "8px", "fontSize": "13px"}),
+            html.Span("🟡 Lég. négatif", style={"background": "#FFC107", "color": "#333", "padding": "3px 10px", "borderRadius": "6px", "marginRight": "8px", "fontSize": "13px"}),
+            html.Span("⚪ Neutre", style={"background": "#E8E8E8", "color": "#666", "padding": "3px 10px", "borderRadius": "6px", "marginRight": "8px", "fontSize": "13px"}),
+            html.Span("🟢 Lég. positif", style={"background": "#D4EDDA", "color": "#155724", "padding": "3px 10px", "borderRadius": "6px", "marginRight": "8px", "fontSize": "13px"}),
+            html.Span("💚 Positif", style={"background": "#28A745", "color": "#fff", "padding": "3px 10px", "borderRadius": "6px", "marginRight": "8px", "fontSize": "13px"}),
+            html.Span("✨ Très positif", style={"background": "#1E7E34", "color": "#fff", "padding": "3px 10px", "borderRadius": "6px", "fontSize": "13px"}),
+        ], style={"marginBottom": "18px", "display": "flex", "alignItems": "center", "flexWrap": "wrap", "gap": "6px"})
 
         return html.Div([
             _hero("🔍 Exploration Détaillée",
-                  "Analyse granulaire des commentaires par typologie"),
+                  "Analyse granulaire des commentaires par gravité et typologie"),
 
             html.Div([
                 html.H4("Filtres de Recherche Avancés",
                         style={"color": SG_BLACK, "fontSize": "24px",
                                "fontWeight": "700", "marginBottom": "25px"}),
                 html.Div([
-                    _filter_col("details-date",      "DATE",      dates_opts,  "Toutes"),
-                    _filter_col("details-source",    "SOURCE",    source_opts, "Toutes"),
-                    _filter_col("details-aspect",    "TYPOLOGIE", aspect_opts, "Toutes"),
-                    _filter_col("details-sentiment", "SENTIMENT", sent_opts,   "Tous"),
-                ])
+                    _filter_col("details-date",      "DATE",      dates_opts,    "Toutes"),
+                    _filter_col("details-source",    "SOURCE",    source_opts,   "Toutes"),
+                    _filter_col("details-aspect",    "TYPOLOGIE", aspect_opts,   "Toutes"),
+                    _filter_col("details-sentiment", "SENTIMENT", sent_opts,     "Tous"),
+                    _filter_col("details-gravite",   "ÉTAT",      flag_opts,     "Toutes"),
+                ], style={"display": "flex", "flexWrap": "wrap", "gap": "15px"})
             ], style=FILTER_BOX),
 
             html.Div([
                 html.H4("Résultats de la Recherche",
                         style={"color": SG_BLACK, "fontSize": "26px",
                                "fontWeight": "700", "marginBottom": "10px"}),
-                html.P("Commentaires filtrés selon vos critères",
-                       style={"color": SG_GREY, "fontSize": "14px", "marginBottom": "25px"}),
-                # ── AgGrid remplace DataTable (déprécié Dash 2.19) ──
+                html.P("Classement : Très critiques en tête → Critiques → Modérés → Autres, puis du plus récent au plus ancien",
+                       style={"color": SG_GREY, "fontSize": "13px", "marginBottom": "15px",
+                              "fontStyle": "italic"}),
+                legend,
                 dag.AgGrid(
                     id="details-table",
                     columnDefs=ag_columns,
                     rowData=[],
                     defaultColDef={"resizable": True, "sortable": True, "filter": True},
-                    dashGridOptions={"pagination": True, "paginationPageSize": 10,
+                    dashGridOptions={"pagination": True, "paginationPageSize": 15,
                                      "domLayout": "autoHeight"},
                     style={"height": None, "width": "100%"},
                 )
@@ -619,7 +692,7 @@ def render_page(tab):
         ], style={"padding": "50px 30px", "backgroundColor": "#FAFAFA", "minHeight": "100vh"})
 
     # ── POSTS ─────────────────────────────────────────────────────
-    # elif tab == "posts":
+    #elif tab == "posts":
         if df_postes.empty:
             return _empty_state("Aucun post trouvé")
 
@@ -634,7 +707,7 @@ def render_page(tab):
         df_p = df_p.dropna(subset=["date"])
         print("\nÉTAPE 2 — après parsing dates (dayfirst=True) + dropna")
         print(f"  date max : {df_p['date'].max()}")
-        print(f"  date min : {df_p['date'].min()}")
+        print(f"  date min : {df_p['date'].min()}")                                     
         print(f"  nb lignes : {len(df_p)}")
 
         # ✅ Remplacer les NaN dans "poste" AVANT le groupby
@@ -762,7 +835,7 @@ def _filter_col(id_, label, options, default):
     return html.Div([
         html.Label(label, style={**LABEL_STYLE, "fontSize": "11px"}),
         dcc.Dropdown(id=id_, options=options, value=default, clearable=False)
-    ], style={"width": "23%", "display": "inline-block", "marginRight": "2.5%"})
+    ], style={"flex": "1", "minWidth": "150px", "display": "inline-block", "marginRight": "2.5%"})
 
 
 # ─────────────────────────────────────────────
@@ -807,19 +880,38 @@ def maj_stats(sources, start_date, end_date):
     avg_neg = round(daily_neg.mean(), 2)
     neg_ratio = round((avg_neg / avg_all * 100).fillna(0), 2)
 
+    # Compteurs de gravité si la colonne existe
+    has_gravite = "gravite" in dff.columns
+    if has_gravite:
+        tres_crit_counts = dff[dff["gravite"] == "Très critique"].groupby("source").size()
+        crit_counts      = dff[dff["gravite"] == "Critique"].groupby("source").size()
+        mod_counts       = dff[dff["gravite"] == "Modéré"].groupby("source").size()
+
     metrics = []
     for src in total_counts.index:
-        metrics.append(html.Div([
+        children = [
             html.H4(f"Commentaires {src}",
                     style={"color": SG_RED, "fontWeight": "700", "marginBottom": "10px"}),
             html.P(f"Total : {total_counts[src]}"),
             html.P(f"😍 Positifs : {pos_counts.get(src, 0)}"),
             html.P(f"🤬 Négatifs : {neg_counts.get(src, 0)}"),
-            html.P(f"😐 Neutres  : {neu_counts.get(src, 0)}"),   # nouveau 2026
+            html.P(f"😐 Neutres  : {neu_counts.get(src, 0)}"),
             html.P(f"% Négatifs : {neg_ratio.get(src, 0)} %"),
             html.P(f"Moy./jour  : {avg_all.get(src, 0)}"),
             html.P(f"Moy. Nég./jour : {avg_neg.get(src, 0)}"),
-        ], style={**CARD, "minWidth": "220px", "flex": "1"}))
+        ]
+        if has_gravite:
+            children.append(html.Hr(style={"border": "none", "borderTop": f"1px solid {SG_LIGHT_GREY}",
+                                           "margin": "12px 0"}))
+            children.append(html.P("⚠️ Répartition Gravité :",
+                                   style={"fontWeight": "700", "marginBottom": "6px"}))
+            children.append(html.P(f"🔴 Très critique : {tres_crit_counts.get(src, 0)}",
+                                   style={"color": "#CC0000", "fontWeight": "600"}))
+            children.append(html.P(f"🟠 Critique : {crit_counts.get(src, 0)}",
+                                   style={"color": "#E65C00", "fontWeight": "600"}))
+            children.append(html.P(f"🟡 Modéré : {mod_counts.get(src, 0)}",
+                                   style={"color": "#B38600"}))
+        metrics.append(html.Div(children, style={**CARD, "minWidth": "220px", "flex": "1"}))
     return metrics
 
 
@@ -935,19 +1027,33 @@ def creer_nouveau_graph(clickData, sources):
     [Input("details-date",      "value"),
      Input("details-source",    "value"),
      Input("details-aspect",    "value"),
-     Input("details-sentiment", "value")],
+     Input("details-sentiment", "value"),
+     Input("details-gravite",   "value")],
 )
-def filter_details(date_filter, source_filter, aspect_filter, sentiment_filter):
+def filter_details(date_filter, source_filter, aspect_filter, sentiment_filter, gravite_filter):
     fdf = absa_df.copy()
     if source_filter    != "Toutes": fdf = fdf[fdf["source"]    == source_filter]
     if aspect_filter    != "Toutes": fdf = fdf[fdf["aspect"]    == aspect_filter]
     if sentiment_filter != "Tous":   fdf = fdf[fdf["sentiment"] == sentiment_filter]
     if date_filter      != "Toutes":
         fdf = fdf[fdf["date"].astype(str).str[:10] == str(date_filter)[:10]]
+    if gravite_filter and gravite_filter != "Toutes":
+        if "flag" in fdf.columns:
+            fdf = fdf[fdf["flag"] == gravite_filter]
 
-    fdf = fdf.sort_values("date", ascending=False)
+    # Tri : Très négatif → ... → Très positif, puis date décroissante
+    if "flag" in fdf.columns:
+        fdf["_rank"] = fdf["flag"].map(FLAG_ORDER).fillna(3)
+        fdf = fdf.sort_values(["_rank", "date"], ascending=[True, False]).drop(columns=["_rank"])
+    else:
+        fdf = fdf.sort_values("date", ascending=False)
+
     fdf["date"] = fdf["date"].astype(str).str[:10]
-    return fdf[["date", "auteur", "phrase", "aspect"]].to_dict("records")
+
+    # Colonnes à retourner
+    cols = ["date", "auteur", "phrase", "aspect", "flag"]
+    cols = [c for c in cols if c in fdf.columns]
+    return fdf[cols].to_dict("records")
 
 
 # ─────────────────────────────────────────────
