@@ -161,6 +161,35 @@ def normaliser_label(label: str) -> str:
 
 
 # ─────────────────────────────────────────────
+# FLAG SENTIMENT (degré + polarité)
+# ─────────────────────────────────────────────
+def _calculer_flag(prob_pos: float, prob_neg: float, prob_neu: float) -> tuple[str, str]:
+    """
+    Calcule :
+      - flag    : label de degré (ex. 'Très négatif', 'Positif', 'Neutre')
+      - gravite : alias négatif rétrocompatible (utilisé par app.py)
+
+    Seuils négatifs  : ≥0.80 Très négatif | ≥0.55 Négatif | ≥0.30 Légèrement négatif
+    Seuils positifs  : ≥0.80 Très positif  | ≥0.55 Positif  | ≥0.30 Légèrement positif
+    Neutre           : tout le reste
+    """
+    if prob_neg >= 0.80:
+        return "Très négatif",          "Très critique"
+    elif prob_neg >= 0.55:
+        return "Négatif",               "Critique"
+    elif prob_neg >= 0.30:
+        return "Légèrement négatif",    "Modéré"
+    elif prob_pos >= 0.80:
+        return "Très positif",          "Aucune"
+    elif prob_pos >= 0.55:
+        return "Positif",               "Aucune"
+    elif prob_pos >= 0.30:
+        return "Légèrement positif",    "Aucune"
+    else:
+        return "Neutre",                "Aucune"
+
+
+# ─────────────────────────────────────────────
 # PRÉDICTION DE SENTIMENT
 # ─────────────────────────────────────────────
 def predict_sentiment(texts: list[str]) -> list[dict]:
@@ -169,42 +198,82 @@ def predict_sentiment(texts: list[str]) -> list[dict]:
 
     Logique :
     1. Heuristique rapide : si un mot-clé négatif fort est présent → NEGATIVE direct
-    2. Sinon → modèle Transformer (inférence par batch)
+    2. Sinon → modèle Transformer avec top_k=None (toutes les proba)
 
-    Retourne : liste de {'label': str, 'score': float}
+    Retourne : liste de dicts avec :
+      label         — classe dominante (POSITIVE / NEGATIVE / NEUTRAL)
+      score         — confiance de la classe dominante
+      prob_positive — probabilité positive
+      prob_negative — probabilité négative
+      prob_neutral  — probabilité neutre
+      flag          — degré de sentiment (ex. 'Très négatif', 'Positif', 'Neutre')
+      gravite       — alias négatif rétrocompatible (Très critique / Critique / Modéré / Aucune)
     """
     results = []
-    indices_to_model = []   # indices des textes à envoyer au modèle
+    indices_to_model = []
     texts_to_model = []
 
-    # Passe 1 : heuristique rapide
+    # Passe 1 : heuristique rapide (mot-clé négatif fort détecté)
     for i, text in enumerate(texts):
         text_lower = text.lower()
         if any(kw in text_lower for kw in NEGATIVE_KEYWORDS):
-            results.append({"label": "NEGATIVE", "score": 1.0})
+            results.append({
+                "label":        "NEGATIVE",
+                "score":        1.0,
+                "prob_positive": 0.0,
+                "prob_negative": 1.0,
+                "prob_neutral":  0.0,
+                "flag":         "Très négatif",
+                "gravite":      "Très critique",
+            })
         else:
-            results.append(None)           # placeholder
+            results.append(None)
             indices_to_model.append(i)
             texts_to_model.append(text)
 
-    # Passe 2 : inférence batch sur les textes restants
+    # Passe 2 : inférence batch avec toutes les probabilités
     if texts_to_model:
-        print(f"  🔮 Inférence sur {len(texts_to_model)} textes (batch={BATCH_SIZE}, device={'GPU' if DEVICE == 0 else 'CPU'})...")
+        print(f"  🔮 Inférence sur {len(texts_to_model)} textes "
+              f"(batch={BATCH_SIZE}, device={'GPU' if DEVICE == 0 else 'CPU'})...")
         try:
-            predictions = analyseur_sentiment(texts_to_model)
-            for idx, pred in zip(indices_to_model, predictions):
+            predictions = analyseur_sentiment(texts_to_model, top_k=None)
+            for idx, pred_list in zip(indices_to_model, predictions):
+                prob_pos = prob_neg = prob_neu = 0.0
+                best_label, best_score = None, -1.0
+
+                for p in pred_list:
+                    norm = normaliser_label(p["label"])
+                    if norm == "POSITIVE":  prob_pos = p["score"]
+                    elif norm == "NEGATIVE": prob_neg = p["score"]
+                    elif norm == "NEUTRAL":  prob_neu = p["score"]
+                    if p["score"] > best_score:
+                        best_score, best_label = p["score"], norm
+
+                flag, gravite = _calculer_flag(prob_pos, prob_neg, prob_neu)
                 results[idx] = {
-                    "label": normaliser_label(pred["label"]),
-                    "score": round(pred["score"], 4),
+                    "label":         best_label,
+                    "score":         round(best_score, 4),
+                    "prob_positive": round(prob_pos, 4),
+                    "prob_negative": round(prob_neg, 4),
+                    "prob_neutral":  round(prob_neu, 4),
+                    "flag":          flag,
+                    "gravite":       gravite,
                 }
         except Exception as e:
             print(f"  ⚠️ Erreur inférence batch : {e} — fallback NEUTRAL")
             for idx in indices_to_model:
                 if results[idx] is None:
-                    results[idx] = {"label": "NEUTRAL", "score": 0.5}
+                    results[idx] = {
+                        "label":         "NEUTRAL",
+                        "score":         0.5,
+                        "prob_positive": 0.0,
+                        "prob_negative": 0.0,
+                        "prob_neutral":  1.0,
+                        "flag":          "Neutre",
+                        "gravite":       "Aucune",
+                    }
 
     return results
-
 
 # ─────────────────────────────────────────────
 # NETTOYAGE DE TEXTE
@@ -275,13 +344,15 @@ def analyse_absa(texte: str) -> list[tuple]:
     # Inférence de sentiment sur les phrases filtrées (batch)
     phrases_seules = [p for p, _ in phrases_avec_aspects]
     try:
-        predictions = analyseur_sentiment(phrases_seules)
+        predictions = analyseur_sentiment(phrases_seules, top_k=None)
     except Exception as e:
         print(f"  ⚠️ Erreur ABSA inférence : {e}")
         return []
 
-    for (phrase, aspects), pred in zip(phrases_avec_aspects, predictions):
-        label = normaliser_label(pred["label"])
+    for (phrase, aspects), pred_list in zip(phrases_avec_aspects, predictions):
+        # Trouver le label avec le score le plus élevé
+        best = max(pred_list, key=lambda p: p["score"])
+        label = normaliser_label(best["label"])
         if "pos" in label.lower():
             sentiment = "positif"
         elif "neg" in label.lower():
@@ -366,9 +437,14 @@ def process_data(
     # ── Prédiction sentiment (batch) ───────────────────────────────
     print("\n🔮 Analyse de sentiment...")
     sentiments = predict_sentiment(df["commentaire"].tolist())
-    df["sentiment"] = [s["label"] for s in sentiments]
-    df["score"] = [s["score"] for s in sentiments]
-    df["date"] = df["ts"]
+    df["sentiment"]     = [s["label"]         for s in sentiments]
+    df["score"]         = [s["score"]         for s in sentiments]
+    df["prob_positive"] = [s["prob_positive"]  for s in sentiments]
+    df["prob_negative"] = [s["prob_negative"]  for s in sentiments]
+    df["prob_neutral"]  = [s["prob_neutral"]   for s in sentiments]
+    df["flag"]          = [s["flag"]           for s in sentiments]
+    df["gravite"]       = [s["gravite"]        for s in sentiments]
+    df["date"]          = df["ts"]
 
     # ── ABSA ───────────────────────────────────────────────────────
     print("\n🔍 Analyse ABSA (aspects)...")
@@ -379,22 +455,40 @@ def process_data(
         aspects = analyse_absa(row["clean"])
         for aspect, phrase, sentiment in aspects:
             analyse_finale.append({
-                "source":   row["source"],
-                "auteur":   row["auteur"],
-                "date":     row["date"],
-                "phrase":   phrase,
-                "aspect":   aspect,
-                "sentiment": sentiment,
+                "source":        row["source"],
+                "auteur":        row["auteur"],
+                "date":          row["date"],
+                "phrase":        phrase,
+                "aspect":        aspect,
+                "sentiment":     sentiment,
+                "flag":          row.get("flag",          "Neutre"),
+                "gravite":       row.get("gravite",       "Aucune"),
+                "prob_negative": row.get("prob_negative", 0.0),
+                "prob_positive": row.get("prob_positive", 0.0),
+                "prob_neutral":  row.get("prob_neutral",  0.0),
             })
 
     # ── KPIs ───────────────────────────────────────────────────────
     kpis = {
-        "total_comments":    int(len(df)),
-        "positive_comments": int((df["sentiment"] == "POSITIVE").sum()),
-        "negative_comments": int((df["sentiment"] == "NEGATIVE").sum()),
-        "neutral_comments":  int((df["sentiment"] == "NEUTRAL").sum()),  # nouveau label 2026
-        "pct_positive":      round((df["sentiment"] == "POSITIVE").mean() * 100, 1),
-        "pct_negative":      round((df["sentiment"] == "NEGATIVE").mean() * 100, 1),
+        "total_comments":           int(len(df)),
+        "positive_comments":        int((df["sentiment"] == "POSITIVE").sum()),
+        "negative_comments":        int((df["sentiment"] == "NEGATIVE").sum()),
+        "neutral_comments":         int((df["sentiment"] == "NEUTRAL").sum()),
+        "pct_positive":             round((df["sentiment"] == "POSITIVE").mean() * 100, 1),
+        "pct_negative":             round((df["sentiment"] == "NEGATIVE").mean() * 100, 1),
+        # Répartition par flag (tous sentiments, par degré)
+        "flag_tres_negatif":        int((df["flag"] == "Très négatif").sum()),
+        "flag_negatif":             int((df["flag"] == "Négatif").sum()),
+        "flag_legerement_negatif":  int((df["flag"] == "Légèrement négatif").sum()),
+        "flag_neutre":              int((df["flag"] == "Neutre").sum()),
+        "flag_legerement_positif":  int((df["flag"] == "Légèrement positif").sum()),
+        "flag_positif":             int((df["flag"] == "Positif").sum()),
+        "flag_tres_positif":        int((df["flag"] == "Très positif").sum()),
+        # Alias rétrocompatible (flag négatif → gravite)
+        "gravite_tres_critique":    int((df["gravite"] == "Très critique").sum()),
+        "gravite_critique":         int((df["gravite"] == "Critique").sum()),
+        "gravite_moderee":          int((df["gravite"] == "Modéré").sum()),
+        "gravite_aucune":           int((df["gravite"] == "Aucune").sum()),
     }
     print(f"\n📈 KPIs : {kpis}")
 
