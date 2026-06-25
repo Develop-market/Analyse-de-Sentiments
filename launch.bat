@@ -1,0 +1,1 @@
+python Posts.py && python post.py && python traitement.py
