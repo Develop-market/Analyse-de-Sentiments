@@ -1,4 +1,4 @@
-date,auteur,commentaire,source,ts,sentiment,score,prob_positive,prob_negative,prob_neutral,flag,gravite,clean
+﻿date,auteur,commentaire,source,ts,sentiment,score,prob_positive,prob_negative,prob_neutral,flag,gravite,clean
 2025-08-07,Ansèlme Allé,Bonne fête,page_BNI,2025-08-07,POSITIVE,0.9551,0.9551,0.0133,0.0316,Très positif,Aucune,bonne fete
 2025-08-07,Brown Ladyy,Bonne fête de l' indépendance à toute,page_BNI,2025-08-07,POSITIVE,0.9666,0.9666,0.0142,0.0192,Très positif,Aucune,bonne fete de l independance a toute
 2025-08-07,Irene Diouro,Bonne fête de l'indépendance,page_BNI,2025-08-07,POSITIVE,0.961,0.961,0.0144,0.0246,Très positif,Aucune,bonne fete de l independance
@@ -17621,8 +17621,8 @@ de ma connaissance on déjà faire leurs virement vous… En voir plus",page_eco
 2026-05-23,Theodore Kouassi,La meilleure des banques,page_ecobank,2026-05-23,POSITIVE,0.9666,0.9666,0.0164,0.017,Très positif,Aucune,la meilleure des banques
 2026-05-22,Inza Alfatha Dosso,Franchement revoyez vos services.,page_NSIA,2026-05-22,NEGATIVE,1.0,0.0,1.0,0.0,Très négatif,Très critique,franchement revoyez vos services
 2026-05-27,Kotchy Tchimou Abel,Bjr. Mr,page_BNI,2026-05-27,NEUTRAL,0.9268,0.0624,0.0108,0.9268,Neutre,Aucune,bjr mr
-2026-07-05,Six Decembre,"Tu n'es pas rassasié ? Faut venir tu vas me prendre tu vas me manger tu seras rassasié Z
-… En voir plus",page_BNI,2026-07-05,NEGATIVE,0.9542,0.009,0.9542,0.0368,Très négatif,Très critique,tu n es pas rassasie faut venir tu vas me prendre tu vas me manger tu seras rassasie z en voir plus
+2026-12-06,Six Decembre,"Tu n'es pas rassasié ? Faut venir tu vas me prendre tu vas me manger tu seras rassasié Z
+… En voir plus",page_BNI,2026-12-06,NEGATIVE,0.9542,0.009,0.9542,0.0368,Très négatif,Très critique,tu n es pas rassasie faut venir tu vas me prendre tu vas me manger tu seras rassasie z en voir plus
 2026-05-27,Mely Le Coeur,"Moi :Maman, je vais partir aussi Elle : va chercher mon porte monnaie sur le lit je t'attends
 a mon retour de la chambre vanhounnn Dame Nioulé Anna Maria Bomisso Vera Lohourignon Epse Alla Joiquim Konan Omn'el Esmel Achille-gabin Aka Sylvestre Toussaint Yao Helene",page_BNI,2026-05-27,NEUTRAL,0.9735,0.0135,0.013,0.9735,Neutre,Aucune,moi maman je vais partir aussi elle va chercher mon porte monnaie sur le lit je t attends a mon retour de la chambre vanhounnn dame nioule anna maria bomisso vera lohourignon epse alla joiquim konan omn el esmel achille gabin aka sylvestre toussaint yao helene
 2026-05-27,Carolle Abe,"Maman oh, et 10000f que tonton jonas m'a donné pour le jour de mon anniversaire? Je veux acheter quelquechose Elle: quel argent? L'argent qui est fini là?Tu veux acheter quel chose? Toute la nourriture que tu as mangé, les jus que tu as bu, tu penses que j'ai acheté avec quoi? Moi: Mais maman, fallait me demander Elle: tchrrr, c'est moi qui t'ai accouché ou c'est toi qui m'a accouché? Fatoumata Diakite Débora Aka Yao Helene",page_BNI,2026-05-27,NEUTRAL,0.847,0.013,0.14,0.847,Neutre,Aucune,maman oh et 10000f que tonton jonas m a donne pour le jour de mon anniversaire je veux acheter quelquechose elle quel argent l argent qui est fini la tu veux acheter quel chose toute la nourriture que tu as mange les jus que tu as bu tu penses que j ai achete avec quoi moi mais maman fallait me demander elle tchrrr c est moi qui t ai accouche ou c est toi qui m a accouche fatoumata diakite debora aka yao helene
@@ -18038,3 +18038,20 @@ c'est pas faux",page_SIB,2026-07-04,POSITIVE,0.8856,0.8856,0.0317,0.0827,Très p
 2026-07-05,Yves Tiallo,Très bonne initiative!!!!,page_BNI,2026-07-05,POSITIVE,0.97,0.97,0.0145,0.0155,Très positif,Aucune,tres bonne initiative
 2026-07-05,Dramane Kone,J'ai besoin d'un agent de la BNI. C'est un peu urgent.,page_BNI,2026-07-05,POSITIVE,0.9331,0.9331,0.0297,0.0372,Très positif,Aucune,j ai besoin d un agent de la bni c est un peu urgent
 2026-07-05,Pascal Rolling Samuel,J'aurais dû y aller si j'avais l'information. Mais c'est pas bien grave l'initiative est a saluer!,page_BNI,2026-07-05,POSITIVE,0.9658,0.9658,0.0201,0.014,Très positif,Aucune,j aurais du y aller si j avais l information mais c est pas bien grave l initiative est a saluer
+2026-07-07,Akegnan Eholie Jean Clode,bonsoir il serait intéressant d' avoir un guichet bni Adiake,page_BNI,2026-07-07,POSITIVE,0.9664,0.9664,0.0186,0.015,Très positif,Aucune,bonsoir il serait interessant d avoir un guichet bni adiake
+2026-07-06,Daouda Djibamy Koné,LA BNI LA MEILLEURE BANQUE EN CÔTE D'IVOIRE. TOUTES MES FÉLICITATIONS AU DG DE LA BNI.,page_BNI,2026-07-06,POSITIVE,0.9688,0.9688,0.0177,0.0134,Très positif,Aucune,la bni la meilleure banque en cote d ivoire toutes mes felicitations au dg de la bni
+2026-07-07,Olivier Djan,On vous attends dans le N’ZI,page_BNI,2026-07-07,NEUTRAL,0.9596,0.0323,0.0081,0.9596,Neutre,Aucune,on vous attends dans le n zi
+2026-07-06,Cynthia Ngname,Philippe-arnaud Nda,page_BNI,2026-07-06,NEUTRAL,0.975,0.0141,0.0109,0.975,Neutre,Aucune,philippe arnaud nda
+2026-07-06,Philippe-arnaud Nda au commentaire de Cynthia Ngname,"Cynthia Ngname
+yeah",page_BNI,2026-07-06,NEUTRAL,0.9755,0.0128,0.0116,0.9755,Neutre,Aucune,cynthia ngname yeah
+2026-07-06,Romaric Yao,Tchiaaàaaaaaaaaaaaaa ça été rapide owwwww,page_BNI,2026-07-06,POSITIVE,0.9633,0.9633,0.0204,0.0163,Très positif,Aucune,tchiaaaaaaaaaaaaaaaa ca ete rapide owwwww
+2026-07-06,Serge Kouadio,L'activation du service de virement est-il payant ?,page_BNI,2026-07-06,NEGATIVE,0.9747,0.0115,0.9747,0.0137,Très négatif,Très critique,l activation du service de virement est il payant
+2026-07-06,Almamy Kobayachy,La fête était belle en tt cas,page_BNI,2026-07-06,POSITIVE,0.969,0.969,0.0154,0.0156,Très positif,Aucune,la fete etait belle en tt cas
+2026-07-06,Agba David Amatchi,Félicitations à vous!!,page_BNI,2026-07-06,POSITIVE,0.9692,0.9692,0.0143,0.0165,Très positif,Aucune,felicitations a vous
+2026-07-07,Yalatif Watt,"Comme si on boit l'eau par nos narines pour aller souscrire à quelque chose encore chez vous , avec ce que vous nous montré là. Kpaka",page_sgci,2026-07-07,NEUTRAL,0.9732,0.0124,0.0144,0.9732,Neutre,Aucune,comme si on boit l eau par nos narines pour aller souscrire a quelque chose encore chez vous avec ce que vous nous montre la kpaka
+2026-07-06,Katinan Ouattara,Cette banque m'a déçu !,page_sgci,2026-07-06,NEGATIVE,0.9761,0.012,0.9761,0.0119,Très négatif,Très critique,cette banque m a decu
+2026-07-06,Trône De Fer,"Je dis
+Société Générale Côte d’Ivoire
+ya quoi avec votre application la meme , rien ne marche . Au guichet pareille dites moi quel soucis avez vous ? Veuillez me répondre sil vous plaît",page_sgci,2026-07-06,NEGATIVE,0.9757,0.0109,0.9757,0.0134,Très négatif,Très critique,je dis societe generale cote d ivoire ya quoi avec votre application la meme rien ne marche au guichet pareille dites moi quel soucis avez vous veuillez me repondre sil vous plait
+2026-07-06,Stephane Bah,Bsr. Pourquoi il n'y a pas de visibilité sur le montant cotisé?,page_sgci,2026-07-06,NEGATIVE,0.9763,0.0102,0.9763,0.0135,Très négatif,Très critique,bsr pourquoi il n y a pas de visibilite sur le montant cotise
+2026-07-06,Koffi Arsene Yao,Vous bloquez l'argent des gens jusqu'à présent. Je suis vraiment déçu.....,page_sgci,2026-07-06,NEGATIVE,0.9766,0.0119,0.9766,0.0115,Très négatif,Très critique,vous bloquez l argent des gens jusqu a present je suis vraiment decu
