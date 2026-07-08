@@ -1,19 +1,19 @@
 {
-  "total_comments": 15492,
-  "positive_comments": 4476,
+  "total_comments": 15502,
+  "positive_comments": 4480,
   "negative_comments": 4663,
-  "neutral_comments": 6353,
+  "neutral_comments": 6359,
   "pct_positive": 28.9,
   "pct_negative": 30.1,
   "flag_tres_negatif": 4446,
   "flag_negatif": 167,
   "flag_legerement_negatif": 187,
-  "flag_neutre": 6073,
-  "flag_legerement_positif": 226,
+  "flag_neutre": 6077,
+  "flag_legerement_positif": 228,
   "flag_positif": 311,
-  "flag_tres_positif": 4082,
+  "flag_tres_positif": 4086,
   "gravite_tres_critique": 4446,
   "gravite_critique": 167,
   "gravite_moderee": 187,
-  "gravite_aucune": 10692
+  "gravite_aucune": 10702
 }
