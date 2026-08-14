@@ -1,4 +1,4 @@
-﻿source,auteur,date,phrase,aspect,sentiment,flag,gravite,prob_negative,prob_positive,prob_neutral
+source,auteur,date,phrase,aspect,sentiment,flag,gravite,prob_negative,prob_positive,prob_neutral
 page_BNI,Klebien Frédéric,2025-08-06,une agence bni a tafire katiola etait le meilleur endroit je crois,agence,positif,Très positif,Aucune,0.0167,0.9679,0.0155
 page_BNI,Mohamed Chabi,2025-08-06,mon application bnionline ne passe pas depuis quelques jours,application,neutre,Légèrement négatif,Modéré,0.3566,0.015,0.6284
 page_BNI,Odilon Yao,2025-08-06,j ai besoin de parler a un conseiller client svp c est urgent,gestionnaire,positif,Très positif,Aucune,0.0226,0.9561,0.0213
