@@ -1,4 +1,4 @@
-date,auteur,commentaire,source,ts,sentiment,score,prob_positive,prob_negative,prob_neutral,flag,gravite,clean
+﻿date,auteur,commentaire,source,ts,sentiment,score,prob_positive,prob_negative,prob_neutral,flag,gravite,clean
 2025-08-07,Ansèlme Allé,Bonne fête,page_BNI,2025-08-07,POSITIVE,0.9551,0.9551,0.0133,0.0316,Très positif,Aucune,bonne fete
 2025-08-07,Brown Ladyy,Bonne fête de l' indépendance à toute,page_BNI,2025-08-07,POSITIVE,0.9666,0.9666,0.0142,0.0192,Très positif,Aucune,bonne fete de l independance a toute
 2025-08-07,Irene Diouro,Bonne fête de l'indépendance,page_BNI,2025-08-07,POSITIVE,0.961,0.961,0.0144,0.0246,Très positif,Aucune,bonne fete de l independance
@@ -17621,6 +17621,8 @@ de ma connaissance on déjà faire leurs virement vous… En voir plus",page_eco
 2026-05-23,Theodore Kouassi,La meilleure des banques,page_ecobank,2026-05-23,POSITIVE,0.9666,0.9666,0.0164,0.017,Très positif,Aucune,la meilleure des banques
 2026-05-22,Inza Alfatha Dosso,Franchement revoyez vos services.,page_NSIA,2026-05-22,NEGATIVE,1.0,0.0,1.0,0.0,Très négatif,Très critique,franchement revoyez vos services
 2026-05-27,Kotchy Tchimou Abel,Bjr. Mr,page_BNI,2026-05-27,NEUTRAL,0.9268,0.0624,0.0108,0.9268,Neutre,Aucune,bjr mr
+2026-12-06,Six Decembre,"Tu n'es pas rassasié ? Faut venir tu vas me prendre tu vas me manger tu seras rassasié Z
+… En voir plus",page_BNI,2026-12-06,NEGATIVE,0.9542,0.009,0.9542,0.0368,Très négatif,Très critique,tu n es pas rassasie faut venir tu vas me prendre tu vas me manger tu seras rassasie z en voir plus
 2026-05-27,Mely Le Coeur,"Moi :Maman, je vais partir aussi Elle : va chercher mon porte monnaie sur le lit je t'attends
 a mon retour de la chambre vanhounnn Dame Nioulé Anna Maria Bomisso Vera Lohourignon Epse Alla Joiquim Konan Omn'el Esmel Achille-gabin Aka Sylvestre Toussaint Yao Helene",page_BNI,2026-05-27,NEUTRAL,0.9735,0.0135,0.013,0.9735,Neutre,Aucune,moi maman je vais partir aussi elle va chercher mon porte monnaie sur le lit je t attends a mon retour de la chambre vanhounnn dame nioule anna maria bomisso vera lohourignon epse alla joiquim konan omn el esmel achille gabin aka sylvestre toussaint yao helene
 2026-05-27,Carolle Abe,"Maman oh, et 10000f que tonton jonas m'a donné pour le jour de mon anniversaire? Je veux acheter quelquechose Elle: quel argent? L'argent qui est fini là?Tu veux acheter quel chose? Toute la nourriture que tu as mangé, les jus que tu as bu, tu penses que j'ai acheté avec quoi? Moi: Mais maman, fallait me demander Elle: tchrrr, c'est moi qui t'ai accouché ou c'est toi qui m'a accouché? Fatoumata Diakite Débora Aka Yao Helene",page_BNI,2026-05-27,NEUTRAL,0.847,0.013,0.14,0.847,Neutre,Aucune,maman oh et 10000f que tonton jonas m a donne pour le jour de mon anniversaire je veux acheter quelquechose elle quel argent l argent qui est fini la tu veux acheter quel chose toute la nourriture que tu as mange les jus que tu as bu tu penses que j ai achete avec quoi moi mais maman fallait me demander elle tchrrr c est moi qui t ai accouche ou c est toi qui m a accouche fatoumata diakite debora aka yao helene
@@ -18282,3 +18284,43 @@ Bonjour M. Nous espérons que vous allez bien. Merci de nous écrire en privé, 
 2026-08-13,Colbert Konan,Pourquoi avez vous supprimé les cartes d'épargne Eclair ?,page_sgci,2026-08-13,NEGATIVE,0.9761,0.0104,0.9761,0.0135,Très négatif,Très critique,pourquoi avez vous supprime les cartes d epargne eclair
 2026-08-13,Drissa Sanogo,"Relier les comptes aux mobiles money. Pour éviter le regard des gens
 .",page_sgci,2026-08-13,POSITIVE,0.9655,0.9655,0.0127,0.0218,Très positif,Aucune,relier les comptes aux mobiles money pour eviter le regard des gens
+2026-08-07,Sylvain Le Béni,Merci Activez wave là maintenant,page_SIB,2026-08-07,POSITIVE,0.9606,0.9606,0.0129,0.0265,Très positif,Aucune,merci activez wave la maintenant
+2026-08-05,Mamadou Toure,"Svp,je veux créer un compte a la banque SIB. I'agios est à combien à la SIB?",page_SIB,2026-08-05,POSITIVE,0.9501,0.9501,0.0113,0.0386,Très positif,Aucune,svp je veux creer un compte a la banque sib i agios est a combien a la sib
+2026-08-06,Clodia Marie au commentaire de Mamadou Toure,"Mamadou Toure
+cst sur Internet ils vont te donner cette information ? Vous aussi deh",page_SIB,2026-08-06,POSITIVE,0.9447,0.9447,0.0092,0.0461,Très positif,Aucune,mamadou toure cst sur internet ils vont te donner cette information vous aussi deh
+2026-08-15,Patrick Landry Ble,"si c'étaient des maisons déjà fini, cela aurait été de vrais occasions car avec ces loyers élèves ,être en location et souscri… En voir plus",page_NSIA,2026-08-15,POSITIVE,0.9684,0.9684,0.0161,0.0155,Très positif,Aucune,si c etaient des maisons deja fini cela aurait ete de vrais occasions car avec ces loyers eleves etre en location et souscri en voir plus
+2026-08-14,Kouachi Fernandez Riva,"Pour l ouverture d un compte a la banque NSIA , quels sont les dossiers a fournir",page_NSIA,2026-08-14,NEUTRAL,0.8942,0.0979,0.0079,0.8942,Neutre,Aucune,pour l ouverture d un compte a la banque nsia quels sont les dossiers a fournir
+2026-08-07,Anatole Kpan,"Le contenu de votre capsule devrait être plutôt : ""En tant que clients, quels services voudriez-vous voir améliorés au sein de… En voir plus",page_NSIA,2026-08-07,POSITIVE,0.9686,0.9686,0.0148,0.0165,Très positif,Aucune,le contenu de votre capsule devrait etre plutot en tant que clients quels services voudriez vous voir ameliores au sein de en voir plus
+2026-08-06,Shalom Mum's,"...et vous êtes tous devenus banquiers
+pas si mal...( celle qui rêvait d'être avocate)",page_NSIA,2026-08-06,POSITIVE,0.962,0.962,0.0184,0.0196,Très positif,Aucune,et vous etes tous devenus banquiers pas si mal celle qui revait d etre avocate
+2026-08-11,Ezechiel Konan Yao,Mon rêve d'enfant était de devenir un gendarme,page_NSIA,2026-08-11,NEUTRAL,0.9302,0.0573,0.0125,0.9302,Neutre,Aucune,mon reve d enfant etait de devenir un gendarme
+2026-08-10,Bendji N'guessan,Besoin de rentrer en contact avec votre agence de nsia rue des vallons,page_NSIA,2026-08-10,NEUTRAL,0.8334,0.1591,0.0075,0.8334,Neutre,Aucune,besoin de rentrer en contact avec votre agence de nsia rue des vallons
+2026-08-07,Koné Odieyo Jean Yves,Chargé de clientèle agricole en banque. J'ai les compétences c'est le terrain d'application qui reste ...,page_NSIA,2026-08-07,NEUTRAL,0.9588,0.0323,0.0089,0.9588,Neutre,Aucune,charge de clientele agricole en banque j ai les competences c est le terrain d application qui reste
+2026-08-08,Aladji Ouattara,Enfant je voulais devenir président de la République,page_NSIA,2026-08-08,NEUTRAL,0.9429,0.045,0.0121,0.9429,Neutre,Aucune,enfant je voulais devenir president de la republique
+2026-08-07,Mike Le Boss,Cette année votre prêt scolaire mon combat,page_NSIA,2026-08-07,POSITIVE,0.8907,0.8907,0.0179,0.0914,Très positif,Aucune,cette annee votre pret scolaire mon combat
+2026-08-06,Michou Adou,"Notre architecte....
+Christelle Adou",page_NSIA,2026-08-06,NEUTRAL,0.9754,0.0136,0.011,0.9754,Neutre,Aucune,notre architecte christelle adou
+2026-08-07,Muss Miséricorde Traore,Ingénieur agronome,page_NSIA,2026-08-07,NEUTRAL,0.9722,0.0172,0.0106,0.9722,Neutre,Aucune,ingenieur agronome
+2026-08-10,Fab de Fab,"Bendji N'guessan
+bosss fait moi un virement aussi . Je tenvoie mon rib",page_NSIA,2026-08-10,NEUTRAL,0.9646,0.0251,0.0104,0.9646,Neutre,Aucune,bendji n guessan bosss fait moi un virement aussi je tenvoie mon rib
+2026-08-17,Carole Cissé,C'est B. FREE biensûr.… En voir plus,page_BNI,2026-08-17,NEUTRAL,0.9754,0.0143,0.0103,0.9754,Neutre,Aucune,c est b free biensur en voir plus
+2026-08-14,Fabrice Boessro,Team 3 On a pris sur l’argent des mois prochains déjà,page_BNI,2026-08-14,NEUTRAL,0.9703,0.0216,0.0081,0.9703,Neutre,Aucune,team 3 on a pris sur l argent des mois prochains deja
+2026-08-14,Trazie Jean YoUan Bi au commentaire de Fabrice Boessro,"Fabrice Boessro
+tu mas tu.é",page_BNI,2026-08-14,NEUTRAL,0.9759,0.013,0.0111,0.9759,Neutre,Aucune,fabrice boessro tu mas tu e
+2026-08-14,Daniel Emery Zirimba,Comment avoir un compte en banque chez vous ? Quels sont les documents à fournir svp ?,page_BNI,2026-08-14,POSITIVE,0.6433,0.6433,0.0096,0.3471,Positif,Aucune,comment avoir un compte en banque chez vous quels sont les documents a fournir svp
+2026-08-14,BNI Côte d'Ivoire au commentaire de Daniel Emery Zirimba,"Daniel Emery Zirimba
+Bonjour, nous vous avons répondu par message privé.",page_BNI,2026-08-14,NEUTRAL,0.9489,0.0438,0.0073,0.9489,Neutre,Aucune,daniel emery zirimba bonjour nous vous avons repondu par message prive
+2026-08-14,Chris Ket Elivane,"La team 3, il n'y a plus rien et il ne me reste que le souffle de vie.",page_BNI,2026-08-14,NEUTRAL,0.9728,0.0138,0.0134,0.9728,Neutre,Aucune,la team 3 il n y a plus rien et il ne me reste que le souffle de vie
+2026-08-14,Ismaël Benoît,"Et ceux qui ont déjà pris avance sur le mois prochain
+c'est team combien",page_BNI,2026-08-14,POSITIVE,0.9622,0.9622,0.0111,0.0267,Très positif,Aucune,et ceux qui ont deja pris avance sur le mois prochain c est team combien
+2026-08-14,Wilfred Assandi,"Forcé, l'homme est dans team 2",page_BNI,2026-08-14,NEUTRAL,0.5541,0.0132,0.4327,0.5541,Légèrement négatif,Modéré,force l homme est dans team 2
+2026-08-15,Michael Yao,Maintenant si on te dit tu peux faire quoi . ? Rien .,page_BNI,2026-08-15,NEUTRAL,0.8923,0.0126,0.0951,0.8923,Neutre,Aucune,maintenant si on te dit tu peux faire quoi rien
+2026-08-14,N'dri Konan,Team 3 : on a pas encore reçu la paie.,page_BNI,2026-08-14,NEUTRAL,0.9721,0.0124,0.0155,0.9721,Neutre,Aucune,team 3 on a pas encore recu la paie
+2026-08-14,Ghislaine Achi,"Team(1): l' argent est encore là, je gère mon budget.",page_BNI,2026-08-14,NEUTRAL,0.9686,0.0241,0.0072,0.9686,Neutre,Aucune,team 1 l argent est encore la je gere mon budget
+2026-08-14,Mireille Kouadio,3 je dois,page_BNI,2026-08-14,NEUTRAL,0.9617,0.0189,0.0194,0.9617,Neutre,Aucune,3 je dois
+2026-08-14,Koffi Bekantti Arsene,4 besoin de pres,page_BNI,2026-08-14,NEUTRAL,0.9596,0.0292,0.0111,0.9596,Neutre,Aucune,4 besoin de pres
+2026-08-14,Assalé Casimir,Si c'est un sondage alors team 2 vainqueur,page_BNI,2026-08-14,POSITIVE,0.9643,0.9643,0.0199,0.0159,Très positif,Aucune,si c est un sondage alors team 2 vainqueur
+2026-08-12,Steph L'étoile Filante,Je veux ouvrir un compte à Sgci comment procéder ??,page_sgci,2026-08-12,POSITIVE,0.9593,0.9593,0.0097,0.031,Très positif,Aucune,je veux ouvrir un compte a sgci comment proceder
+2026-08-07,ONG Be Green.,Merci infiniment,page_sgci,2026-08-07,POSITIVE,0.9643,0.9643,0.0139,0.0217,Très positif,Aucune,merci infiniment
+2026-08-09,Guy-farras Kame,"Société Générale Côte d’Ivoire
+si être viré dans cette banque avec un agios élevé jusqu'à 7150f et vous pouvez par nous octroyer des prêts alors libérer nous ...déçu",page_sgci,2026-08-09,NEGATIVE,0.9657,0.0232,0.9657,0.0111,Très négatif,Très critique,societe generale cote d ivoire si etre vire dans cette banque avec un agios eleve jusqu a 7150f et vous pouvez par nous octroyer des prets alors liberer nous decu
