@@ -1,4 +1,4 @@
-date,auteur,commentaire,source,ts,sentiment,score,prob_positive,prob_negative,prob_neutral,flag,gravite,clean
+﻿date,auteur,commentaire,source,ts,sentiment,score,prob_positive,prob_negative,prob_neutral,flag,gravite,clean
 2025-08-07,Ansèlme Allé,Bonne fête,page_BNI,2025-08-07,POSITIVE,0.9551,0.9551,0.0133,0.0316,Très positif,Aucune,bonne fete
 2025-08-07,Brown Ladyy,Bonne fête de l' indépendance à toute,page_BNI,2025-08-07,POSITIVE,0.9666,0.9666,0.0142,0.0192,Très positif,Aucune,bonne fete de l independance a toute
 2025-08-07,Irene Diouro,Bonne fête de l'indépendance,page_BNI,2025-08-07,POSITIVE,0.961,0.961,0.0144,0.0246,Très positif,Aucune,bonne fete de l independance
@@ -18322,3 +18322,15 @@ c'est team combien",page_BNI,2026-08-14,POSITIVE,0.9622,0.9622,0.0111,0.0267,Tr�
 2026-08-07,ONG Be Green.,Merci infiniment,page_sgci,2026-08-07,POSITIVE,0.9643,0.9643,0.0139,0.0217,Très positif,Aucune,merci infiniment
 2026-08-09,Guy-farras Kame,"Société Générale Côte d’Ivoire
 si être viré dans cette banque avec un agios élevé jusqu'à 7150f et vous pouvez par nous octroyer des prêts alors libérer nous ...déçu",page_sgci,2026-08-09,NEGATIVE,0.9657,0.0232,0.9657,0.0111,Très négatif,Très critique,societe generale cote d ivoire si etre vire dans cette banque avec un agios eleve jusqu a 7150f et vous pouvez par nous octroyer des prets alors liberer nous decu
+2026-08-15,Pascal Benie,Amen Amen a vos vœux,page_SIB,2026-08-15,POSITIVE,0.9482,0.9482,0.019,0.0328,Très positif,Aucune,amen amen a vos voeux
+2026-08-17,Prudence D'assise Behibro,"Enfin, NSIA bondoukou. Merci à vous .",page_NSIA,2026-08-17,POSITIVE,0.9696,0.9696,0.0147,0.0157,Très positif,Aucune,enfin nsia bondoukou merci a vous
+2026-08-17,Clément Gnagnini,On attend la construction d'une agence à Beoumi,page_NSIA,2026-08-17,NEUTRAL,0.968,0.0243,0.0077,0.968,Neutre,Aucune,on attend la construction d une agence a beoumi
+2026-08-18,Grace Dorcas Epse Aka,Vous toujours ces vous puff,page_sgci,2026-08-18,NEUTRAL,0.9716,0.0133,0.0151,0.9716,Neutre,Aucune,vous toujours ces vous puff
+2026-08-17,Sonzanan Julien Guei,Bien noté merci,page_sgci,2026-08-17,POSITIVE,0.9657,0.9657,0.0139,0.0204,Très positif,Aucune,bien note merci
+2026-08-17,Kouakou Tanoh,C'est devenu récurrent. C'est insupportable. C'est quelle maintenance qui ne fint pas.,page_sgci,2026-08-17,NEGATIVE,0.9766,0.0108,0.9766,0.0126,Très négatif,Très critique,c est devenu recurrent c est insupportable c est quelle maintenance qui ne fint pas
+2026-08-17,Djibami Koné,Ah tchê vous aussi,page_sgci,2026-08-17,NEUTRAL,0.9356,0.0496,0.0147,0.9356,Neutre,Aucune,ah tche vous aussi
+2026-08-17,Jessica Evelyne Brou,Répondez inbox,page_sgci,2026-08-17,NEUTRAL,0.9602,0.0316,0.0082,0.9602,Neutre,Aucune,repondez inbox
+2026-08-17,Eric-Didier Kadio,Aaaaaaaah,page_sgci,2026-08-17,POSITIVE,0.8862,0.8862,0.0607,0.0531,Très positif,Aucune,aaaaaaaah
+2026-08-17,Oumar Dao,"Toujours la même chose, apparemment pourquoi ouvrir cette plateforme si vous n'êtes même pas capable de répondre à nos questions, merci",page_sgci,2026-08-17,NEGATIVE,0.9767,0.0109,0.9767,0.0123,Très négatif,Très critique,toujours la meme chose apparemment pourquoi ouvrir cette plateforme si vous n etes meme pas capable de repondre a nos questions merci
+2026-08-18,Coulibaly Mori,Attends chaque semaine vous faites maintenance tchrrr,page_sgci,2026-08-18,NEUTRAL,0.9756,0.0119,0.0124,0.9756,Neutre,Aucune,attends chaque semaine vous faites maintenance tchrrr
+2026-08-17,Kouassi Jonas Kouakou,Vous nous voulez quoi à la fin ? ?,page_sgci,2026-08-17,NEGATIVE,0.9729,0.0099,0.9729,0.0172,Très négatif,Très critique,vous nous voulez quoi a la fin
